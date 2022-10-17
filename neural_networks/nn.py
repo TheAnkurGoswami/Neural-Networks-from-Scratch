@@ -1,11 +1,11 @@
 import numpy as np
 
-from activations import get_activation_fn
+from neural_networks.activations import get_activation_fn
 
 class Dense:
-    def __init__(self, n_inputs, n_outputs, activation=None) -> None:
-        self._n_inputs = n_inputs
-        self._n_outputs = n_outputs
+    def __init__(self, in_features, out_features, activation=None) -> None:
+        self._in_features = in_features
+        self._out_features = out_features
         self._activation = activation
         self._inputs = None
         self._weights = None
@@ -13,23 +13,24 @@ class Dense:
         self._build()
   
     def _build(self) -> None:
-        self._weights = np.random.normal(loc=0.0, scale=1.0, size=(self._n_outputs, self._n_inputs))
-        self._bias = np.zeros(shape=(self._n_outputs, 1))
+        self._weights = np.random.normal(loc=0.0, scale=1.0, size=(self._in_features, self._out_features))
+        self._weights = self._weights.astype(np.float32)
+        self._bias = np.zeros(shape=(1, self._out_features)).astype(np.float32)
     
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """
-        inputs.shape = (self._n_inputs, input_batch_size)
-        result.shape = (self._n_outputs, input_batch_size)
-        activation.shape = (self._n_outputs, input_batch_size)
+        inputs.shape = (n_inputs, self._in_features)
+        result.shape = (n_inputs, self._out_features)
+        activation.shape = (n_inputs, self._out_features)
         """
         self._inputs = inputs
-        # z = w.x + b
-        result = np.matmul(self._weights, inputs) + self._bias
+        # z = x.w + b
+        result = np.matmul(inputs, self._weights) + self._bias
         activation_fn = get_activation_fn(self._activation)
         activation = activation_fn.forward(result)
         return activation
 
-    def backprop(self, dA: np.ndarray, learning_rate: int) -> np.ndarray:
+    def backprop(self, dA: np.ndarray, learning_rate: float) -> np.ndarray:
         """
         dA is short notation for dL/da (change in loss w.r.t change in activation).
         dZ is short notation for dL/dz.
@@ -53,7 +54,7 @@ class Dense:
         dZ = activation_fn.backprop(dA)
         dW = np.matmul(self._inputs.T, dZ)
         dB = np.sum(dZ, axis=-1)
-        dX = np.matmul(self._weights.T, dZ)
+        dX = np.matmul(dZ, self._weights.T)
 
         # W = W - alpha * dW
         self._weights -= learning_rate * dW
