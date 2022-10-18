@@ -21,3 +21,19 @@ class MSELoss(Loss):
     
     def backprop(self) -> np.ndarray:
         return (2 / self._y_pred.shape[0]) * (self._y_pred - self._y_true)
+
+
+class RMSELoss(Loss):
+    def __init__(self) -> None:
+        self._y_true = None
+        self._y_pred = None
+        self._loss = None
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> np.ndarray:
+        self._y_true = y_true
+        self._y_pred = y_pred
+        self._loss = np.sqrt(np.mean(np.square(y_pred - y_true)))
+        return self._loss
+    
+    def backprop(self) -> np.ndarray:
+        return (self._y_pred - self._y_true) / (self._y_pred.shape[0] * self._loss)
