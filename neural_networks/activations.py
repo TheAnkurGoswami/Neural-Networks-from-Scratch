@@ -1,6 +1,7 @@
 
 
 from typing import Optional
+
 import numpy as np
 
 
@@ -8,7 +9,7 @@ class Activation:
     @staticmethod
     def forward(inputs: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
-    
+
     @staticmethod
     def backprop(dA: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
