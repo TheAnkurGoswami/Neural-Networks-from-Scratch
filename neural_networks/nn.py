@@ -53,7 +53,7 @@ class Dense:
         activation_fn = get_activation_fn(self._activation)
         dZ = activation_fn.backprop(dA)
         dW = np.matmul(self._inputs.T, dZ)
-        dB = np.sum(dZ, axis=-1)
+        dB = dZ
         dX = np.matmul(dZ, self._weights.T)
 
         # W = W - alpha * dW
