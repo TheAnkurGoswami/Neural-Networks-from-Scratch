@@ -1,1 +1,8 @@
-tensor-annotations-tensorflow-stubs==2.0.1
+-r requirements.txt
+flake8==3.9.2
+isort==5.9.3
+mypy==0.790
+pre-commit==2.16.0
+pycodestyle==2.7.0
+pylint==2.15.3
+pytest==6.2.1
