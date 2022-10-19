@@ -1,0 +1,59 @@
+{
+    "editor.suggestSelection": "first",
+    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+    "atlascode.bitbucket.enabled": false,
+    "editor.rulers": [
+        80, 120
+    ],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "python.showStartPage": false,
+    "python.disableInstallationCheck": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.pycodestyleEnabled": true,
+    "autoDocstring.startOnNewLine": true,
+    "python.linting.flake8Args": [
+        "--verbose",
+        "--select C812",
+        "--show-source",
+        "--exclude venv"
+    ],
+    "http.proxyAuthorization": null,
+    "python.linting.mypyCategorySeverity.note": "Warning",
+    "python.linting.mypyArgs": [
+        "--follow-imports=silent",
+        "--show-column-numbers",
+        "--config-file=${workspaceFolder}/mypy.ini"
+    ],
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter-notebook"
+    },
+    "workbench.enableExperiments": false,
+    "window.newWindowDimensions": "maximized",
+    "explorer.confirmDelete": false,
+    "python.languageServer": "Pylance",
+    "editor.definitionLinkOpensInPeek": true,
+    "notebook.diff.enablePreview": false,
+    "python.dataScience.useNotebookEditor": false,
+    "jupyter.useNotebookEditor": false,
+    "editor.fontLigatures": false,
+    "editor.renderWhitespace": "all",
+    "editor.renderControlCharacters": true,
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+    "editor.emptySelectionClipboard": false,
+    "workbench.startupEditor": "none",
+    "redhat.telemetry.enabled": false,
+    "[python]": {
+        "gitlens.codeLens.symbolScopes": [
+            "!Module"
+        ],
+        "editor.wordBasedSuggestions": false
+    },
+    "python.linting.pylintEnabled": true,
+    "editor.bracketPairColorization.enabled": true,
+    "python.linting.pylintArgs": ["--generate-members"]
+}
