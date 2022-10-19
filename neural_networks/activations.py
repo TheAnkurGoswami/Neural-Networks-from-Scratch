@@ -1,6 +1,6 @@
 
 
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 
@@ -35,7 +35,7 @@ class ReLU(Activation):
         return dA
 
 
-def get_activation_fn(activation: Optional[str]) -> Activation:
+def get_activation_fn(activation: Optional[str]) -> Type[Activation]:
     if activation is None:
         activation = "identity"
     activation_map = {

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -14,13 +14,15 @@ class Dense:
         self._in_features = in_features
         self._out_features = out_features
         self._activation = activation
-        self._build()
+        self._inputs: Optional[np.ndarray] = None
+        self._weights, self._bias = self._build()
 
-    def _build(self) -> None:
-        self._weights = np.random.normal(
+    def _build(self) -> Tuple[np.ndarray, np.ndarray]:
+        weights = np.random.normal(
             loc=0.0, scale=1.0, size=(self._in_features, self._out_features))
-        self._weights = self._weights.astype(np.float32)
-        self._bias = np.zeros(shape=(1, self._out_features)).astype(np.float32)
+        weights = weights.astype(np.float32)
+        bias = np.zeros(shape=(1, self._out_features)).astype(np.float32)
+        return weights, bias
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """
@@ -56,6 +58,7 @@ class Dense:
         dB = dZ
 
         """
+        assert self._inputs is not None
         activation_fn = get_activation_fn(self._activation)
         dZ = activation_fn.backprop(dA)
         dW = np.matmul(self._inputs.T, dZ)
