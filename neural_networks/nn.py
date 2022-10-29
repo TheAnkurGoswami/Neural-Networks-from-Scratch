@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from neural_networks.activations import get_activation_fn
+from neural_networks.optimizers import Optimizer
 
 
 class Dense:
@@ -16,6 +17,9 @@ class Dense:
         self._activation = activation
         self._inputs: Optional[np.ndarray] = None
         self._weights, self._bias = self._build()
+        # For moving average based optimizers
+        self._dw_history = np.zeros_like(self._weights)
+        self._db_history = np.zeros_like(self._bias)
 
     def _build(self) -> Tuple[np.ndarray, np.ndarray]:
         weights = np.random.normal(
@@ -37,7 +41,7 @@ class Dense:
         activation = activation_fn.forward(result)
         return activation
 
-    def backprop(self, dA: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backprop(self, dA: np.ndarray, optimizer: Optimizer) -> np.ndarray:
         """
         dA is short notation for dL/da (change in loss w.r.t change in
         activation).
@@ -65,9 +69,11 @@ class Dense:
         dB = dZ
         dX = np.matmul(dZ, self._weights.T)
 
-        # W = W - alpha * dW
-        self._weights -= learning_rate * dW
-        # B = B - alpha * dB
-        self._bias -= learning_rate * dB
+        self._dw_history = optimizer.optimize(self._dw_history, dW)
+        self._db_history = optimizer.optimize(self._db_history, dB)
+
+        # Parametric updations
+        self._weights -= self._dw_history
+        self._bias -= self._db_history
 
         return dX
