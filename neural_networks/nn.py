@@ -69,11 +69,11 @@ class Dense:
         dB = dZ
         dX = np.matmul(dZ, self._weights.T)
 
-        self._dw_history = optimizer.optimize(self._dw_history, dW)
-        self._db_history = optimizer.optimize(self._db_history, dB)
+        dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
+        db_change, self._db_history = optimizer.optimize(self._db_history, dB)
 
         # Parametric updations
-        self._weights -= self._dw_history
-        self._bias -= self._db_history
+        self._weights -= dw_change
+        self._bias -= db_change
 
         return dX

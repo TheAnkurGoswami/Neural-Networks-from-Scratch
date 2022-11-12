@@ -74,6 +74,7 @@
         "invalid-unary-operand-type",
         "missing-docstring",
         "missing-timeout",
+        "no-member",
         "not-an-iterable",
         "not-callable",
         "protected-access",
