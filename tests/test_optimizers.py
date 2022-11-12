@@ -118,6 +118,9 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         for idx in range(n_layers):
             assert np.allclose(
                 dense_layers[idx]._weights, tf_weights_list[idx])
+            print(np.isclose(
+                dense_layers[idx]._weights,
+                torch_weights_list[idx].detach().numpy()))
             assert np.allclose(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy())
