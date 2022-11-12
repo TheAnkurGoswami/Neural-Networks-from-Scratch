@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -18,8 +18,8 @@ class Dense:
         self._inputs: Optional[np.ndarray] = None
         self._weights, self._bias = self._build()
         # For moving average based optimizers
-        self._dw_history = np.zeros_like(self._weights)
-        self._db_history = np.zeros_like(self._bias)
+        self._dw_history: Optional[Dict[str, np.ndarray]] = None
+        self._db_history: Optional[Dict[str, np.ndarray]] = None
 
     def _build(self) -> Tuple[np.ndarray, np.ndarray]:
         weights = np.random.normal(
