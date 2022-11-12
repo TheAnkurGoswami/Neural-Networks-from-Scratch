@@ -26,8 +26,7 @@ TORCH_OPTIM_MAP = {
         ("sgd", {"learning_rate": 0.001, "momentum": 0.9}),
         ("rmsprop", {"learning_rate": 0.001, "rho": 0.9, "epsilon": 1e-07})
     ])
-def test_n_hidden_layer_simple_nn(
-        optimizer_str: str, kwargs: Dict[str, Any]) -> None:
+def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     epochs = 10
     np.random.seed(65)
 
