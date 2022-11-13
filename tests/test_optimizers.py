@@ -128,7 +128,7 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
 
         for idx in range(n_layers):
             assert np.allclose(
-                dense_layers[idx]._weights, tf_weights_list[idx])
+                dense_layers[idx]._weights, tf_weights_list[idx], rtol=1.e-04)
             print(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy(),
@@ -137,11 +137,11 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
                     torch_weights_list[idx].detach().numpy()))
             assert np.allclose(
                 dense_layers[idx]._weights,
-                torch_weights_list[idx].detach().numpy())
+                torch_weights_list[idx].detach().numpy(), rtol=1.e-04)
             assert np.allclose(
                 dense_layers[idx]._bias, tf_biases_list[idx], rtol=1.e-04)
             assert np.allclose(
                 dense_layers[idx]._bias,
-                torch_biases_list[idx].detach().numpy())
+                torch_biases_list[idx].detach().numpy(), rtol=1.e-04)
         assert np.allclose(cost_nn, cost_tf)
         assert np.allclose(cost_nn, loss_torch_fn.item())
