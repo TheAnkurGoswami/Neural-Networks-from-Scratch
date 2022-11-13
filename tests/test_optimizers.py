@@ -12,11 +12,13 @@ from neural_networks.optimizers import get_optimizer
 TF_OPTIM_MAP = {
     "sgd": tf.keras.optimizers.SGD,
     "rmsprop": tf.keras.optimizers.RMSprop,
+    "adam": tf.keras.optimizers.Adam,
 }
 
 TORCH_OPTIM_MAP = {
     "sgd": torch.optim.SGD,
     "rmsprop": torch.optim.RMSprop,
+    "adam": torch.optim.Adam,
 }
 
 
@@ -24,7 +26,12 @@ TORCH_OPTIM_MAP = {
     "optimizer_str, kwargs",
     [
         ("sgd", {"learning_rate": 0.001, "momentum": 0.9}),
-        ("rmsprop", {"learning_rate": 0.001, "rho": 0.9, "epsilon": 1e-07})
+        ("rmsprop", {"learning_rate": 0.001, "rho": 0.9, "epsilon": 1e-07}),
+        ("adam", {
+            "learning_rate": 0.001,
+            "beta_1": 0.9,
+            "beta_2": 0.999,
+            "epsilon": 1e-07})
     ])
 def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     epochs = 10
@@ -72,12 +79,15 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         try:
             new_kwargs[torch_tf_map[key]] = kwargs[key]
         except KeyError:
-            new_kwargs[key] = kwargs[key]
+            if key not in {"beta_1", "beta_2"}:
+                new_kwargs[key] = kwargs[key]
+    if "beta_1" in kwargs.keys() and "beta_2" in kwargs.keys():
+        new_kwargs["betas"] = (kwargs["beta_1"], kwargs["beta_2"])
 
     optimizer_torch = TORCH_OPTIM_MAP[optimizer_str](
         params=[*torch_weights_list, *torch_biases_list],
         **new_kwargs)
-    for _ in range(epochs):
+    for epoch in range(epochs):
         # Our neural network
         feed_in = x
         for idx in range(n_layers):
@@ -86,6 +96,7 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         cost_nn = loss.forward(y_pred=output, y_true=y)
         dL = loss.backprop()
         derivative = dL
+        optimizer.set_cur_epoch(epoch + 1)
         for idx in range(n_layers - 1, -1, -1):
             derivative = dense_layers[idx].backprop(
                 derivative, optimizer=optimizer)
@@ -118,13 +129,11 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         for idx in range(n_layers):
             assert np.allclose(
                 dense_layers[idx]._weights, tf_weights_list[idx])
-            print(np.isclose(
-                dense_layers[idx]._weights,
-                torch_weights_list[idx].detach().numpy()))
             assert np.allclose(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy())
-            assert np.allclose(dense_layers[idx]._bias, tf_biases_list[idx])
+            assert np.allclose(
+                dense_layers[idx]._bias, tf_biases_list[idx], rtol=1.e-04)
             assert np.allclose(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy())

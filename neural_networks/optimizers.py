@@ -11,7 +11,7 @@ class Optimizer:
             self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
         raise NotImplementedError()
 
-    def set_cur_epoch(self, epoch: int):
+    def set_cur_epoch(self, epoch: int) -> None:
         self._epoch = epoch
 
     def optimize(
@@ -28,7 +28,8 @@ class SGD(Optimizer):
         self._learning_rate = learning_rate
         self._momentum = momentum
 
-    def _initialize_history(self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
+    def _initialize_history(
+            self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
         return {"accum_grad": np.zeros_like(parameter)}
 
     def optimize(
@@ -97,13 +98,13 @@ class Adam(Optimizer):
     def __init__(
             self,
             learning_rate: float,
-            beta1: float,
-            beta2: float,
+            beta_1: float,
+            beta_2: float,
             epsilon: float = 1e-07) -> None:
         super().__init__()
         self._learning_rate = learning_rate
-        self._beta1 = beta1
-        self._beta2 = beta2
+        self._beta1 = beta_1
+        self._beta2 = beta_2
         self._epsilon = epsilon
 
     def _initialize_history(
@@ -127,9 +128,10 @@ class Adam(Optimizer):
             (1 - self._beta1) * derivative
         second_moment_t = self._beta2 * second_moment_t_prev + \
             (1 - self._beta2) * np.square(derivative)
-        corrected_first_moment_t = first_moment_t / (1 - self._beta1 ** epoch)
-        corrected_second_moment_t = second_moment_t / (1 - self._beta2 ** epoch)
-
+        first_mom_corr = (1 - self._beta1 ** epoch)
+        second_mom_corr = (1 - self._beta2 ** epoch)
+        corrected_first_moment_t = first_moment_t / first_mom_corr
+        corrected_second_moment_t = second_moment_t / second_mom_corr
         new_change = (self._learning_rate * corrected_first_moment_t) / (
             np.sqrt(corrected_second_moment_t) + self._epsilon)
 
