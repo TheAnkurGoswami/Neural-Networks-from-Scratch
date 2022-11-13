@@ -1,10 +1,10 @@
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 
 
 class Optimizer:
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         self._epoch = 0
 
     def _initialize_history(
