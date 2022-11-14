@@ -64,7 +64,7 @@ class Dense:
         """
         assert self._inputs is not None
         activation_fn = get_activation_fn(self._activation)
-        dZ = activation_fn.backprop(dA)
+        dZ = activation_fn.backprop(dA, self._inputs)
         dW = np.matmul(self._inputs.T, dZ)
         dB = dZ
         dX = np.matmul(dZ, self._weights.T)
