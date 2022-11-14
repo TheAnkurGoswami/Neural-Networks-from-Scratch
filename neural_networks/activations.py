@@ -35,6 +35,20 @@ class ReLU(Activation):
         return dA
 
 
+class Sigmoid(Activation):
+    @staticmethod
+    def forward(inputs: np.ndarray) -> np.ndarray:
+        return 1 / (1 + np.exp(-1 * inputs))
+
+    @staticmethod
+    def backprop(dA: np.ndarray, inputs: np.ndarray) -> np.ndarray:
+        """
+        y = sigmoid(x) = 1 / (1 + e^(-x))
+        dy/dx = sigmoid(x) * (1 - sigmoid(x))
+        """
+        return dA * Sigmoid.forward(inputs) * (1 - Sigmoid.forward(inputs))
+
+
 class Tanh(Activation):
     @staticmethod
     def forward(inputs: np.ndarray) -> np.ndarray:
