@@ -23,7 +23,7 @@ class Optimizer:
 
 
 class SGD(Optimizer):
-    def __init__(self, learning_rate: float, momentum: float) -> None:
+    def __init__(self, learning_rate: float, momentum: float = 0) -> None:
         super().__init__()
         self._learning_rate = learning_rate
         self._momentum = momentum
@@ -98,8 +98,8 @@ class Adam(Optimizer):
     def __init__(
             self,
             learning_rate: float,
-            beta_1: float,
-            beta_2: float,
+            beta_1: float = 0.9,
+            beta_2: float = 0.999,
             epsilon: float = 1e-07) -> None:
         super().__init__()
         self._learning_rate = learning_rate
