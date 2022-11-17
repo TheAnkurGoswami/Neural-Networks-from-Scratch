@@ -14,7 +14,7 @@ class Dense:
             activation: Optional[str] = None) -> None:
         self._in_features = in_features
         self._out_features = out_features
-        self._activation = activation
+        self._activation = get_activation_fn(activation)()
         self._inputs: Optional[np.ndarray] = None
         self._weights, self._bias = self._build()
         # For moving average based optimizers
@@ -37,8 +37,7 @@ class Dense:
         self._inputs = inputs
         # z = x.w + b
         result = np.matmul(inputs, self._weights) + self._bias
-        activation_fn = get_activation_fn(self._activation)
-        activation = activation_fn.forward(result)
+        activation = self._activation.forward(result)
         return activation
 
     def backprop(self, dA: np.ndarray, optimizer: Optimizer) -> np.ndarray:
@@ -63,8 +62,7 @@ class Dense:
 
         """
         assert self._inputs is not None
-        activation_fn = get_activation_fn(self._activation)
-        dZ = activation_fn.backprop(dA, self._inputs)
+        dZ = self._activation.backprop(dA)
         dW = np.matmul(self._inputs.T, dZ)
         dB = dZ
         dX = np.matmul(dZ, self._weights.T)
