@@ -8,6 +8,7 @@ import torch
 from neural_networks.losses import RMSELoss
 from neural_networks.nn import Dense
 from neural_networks.optimizers import get_optimizer
+from utils import check_closeness
 
 TF_OPTIM_MAP = {
     "sgd": tf.keras.optimizers.SGD,
@@ -60,14 +61,14 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         tf_weights_list.append(w_tf)
         tf_biases_list.append(b_tf)
 
-        w_torch = torch.tensor(w.astype(np.float32), requires_grad=True)
-        b_torch = torch.tensor(b.astype(np.float32), requires_grad=True)
+        w_torch = torch.tensor(w, requires_grad=True, dtype=torch.float32)
+        b_torch = torch.tensor(b, requires_grad=True)
         torch_weights_list.append(w_torch)
         torch_biases_list.append(b_torch)
 
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
-    x_torch = torch.tensor(x.astype(np.float32))
+    x_torch = torch.tensor(x.astype(np.float32), requires_grad=True)
     y_torch = torch.tensor(y.astype(np.float32))
 
     loss = RMSELoss()
@@ -114,6 +115,8 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
         # Pytorch neural network
+        all_dX = []
+        all_dZ = []
         feed_in_torch = x_torch
         for idx in range(n_layers):
             optimizer_torch.zero_grad()
@@ -127,15 +130,22 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         optimizer_torch.step()
 
         for idx in range(n_layers):
-            assert np.allclose(
-                dense_layers[idx]._weights, tf_weights_list[idx], rtol=1.e-04)
-            assert np.allclose(
+            assert check_closeness(
                 dense_layers[idx]._weights,
-                torch_weights_list[idx].detach().numpy(), rtol=1.e-04)
-            assert np.allclose(
-                dense_layers[idx]._bias, tf_biases_list[idx], rtol=1.e-04)
-            assert np.allclose(
+                tf_weights_list[idx],
+                double_check=True)
+            assert check_closeness(
+                dense_layers[idx]._weights,
+                torch_weights_list[idx].detach().numpy(),
+                double_check=True)
+
+            assert check_closeness(
                 dense_layers[idx]._bias,
-                torch_biases_list[idx].detach().numpy(), rtol=1.e-04)
-        assert np.allclose(cost_nn, cost_tf)
-        assert np.allclose(cost_nn, loss_torch_fn.item())
+                tf_biases_list[idx],
+                double_check=True)
+            assert check_closeness(
+                dense_layers[idx]._bias,
+                torch_biases_list[idx].detach().numpy(),
+                double_check=True)
+        assert check_closeness(cost_nn, cost_tf)
+        assert check_closeness(cost_nn, loss_torch_fn.item())

@@ -110,7 +110,7 @@ class Adam(Optimizer):
     def _initialize_history(
             self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
         return {
-            "first_moment_t": np.zeros_like(parameter),
+            "first_moment_t": np.zeros_like(parameter, ),
             "second_moment_t": np.zeros_like(parameter),
         }
 
@@ -128,13 +128,12 @@ class Adam(Optimizer):
             (1 - self._beta1) * derivative
         second_moment_t = self._beta2 * second_moment_t_prev + \
             (1 - self._beta2) * np.square(derivative)
-        first_mom_corr = (1 - self._beta1 ** epoch)
-        second_mom_corr = (1 - self._beta2 ** epoch)
+        first_mom_corr = (1 - np.power(self._beta1, epoch))
+        second_mom_corr = (1 - np.power(self._beta2, epoch))
         corrected_first_moment_t = first_moment_t / first_mom_corr
         corrected_second_moment_t = second_moment_t / second_mom_corr
-        new_change = (self._learning_rate * corrected_first_moment_t) / (
-            np.sqrt(corrected_second_moment_t) + self._epsilon)
-
+        denom = np.sqrt(corrected_second_moment_t) + self._epsilon
+        new_change = ((self._learning_rate) * corrected_first_moment_t) / denom
         new_history = {
             "first_moment_t": first_moment_t,
             "second_moment_t": second_moment_t,
