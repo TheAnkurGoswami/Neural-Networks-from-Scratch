@@ -115,8 +115,6 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
         # Pytorch neural network
-        all_dX = []
-        all_dZ = []
         feed_in_torch = x_torch
         for idx in range(n_layers):
             optimizer_torch.zero_grad()

@@ -8,6 +8,7 @@ import torch
 from neural_networks.losses import MSELoss, RMSELoss
 from neural_networks.nn import Dense
 from neural_networks.optimizers import get_optimizer
+from utils import check_closeness
 
 
 def test_no_hidden_layer_simple_nn() -> None:
@@ -60,13 +61,13 @@ def test_no_hidden_layer_simple_nn() -> None:
         loss_torch_fn = loss_torch(y_pred, y_torch)
         loss_torch_fn.backward()
         optimizer_torch.step()
-        assert np.allclose(dense._weights, w_tf, rtol=1.e-4)
-        assert np.allclose(
-            dense._weights, w_torch.detach().numpy(), rtol=1.e-4)
-        assert np.allclose(dense._bias, b_tf, rtol=1.e-4)
-        assert np.allclose(dense._bias, b_torch.detach().numpy(), rtol=1.e-4)
-        assert np.allclose(cost_nn, cost_tf, rtol=1.e-4)
-        assert np.allclose(loss_torch_fn.item(), cost_nn, rtol=1.e-4)
+        assert check_closeness(dense._weights, w_tf)
+        assert check_closeness(
+            dense._weights, w_torch.detach().numpy())
+        assert check_closeness(dense._bias, b_tf)
+        assert check_closeness(dense._bias, b_torch.detach().numpy())
+        assert check_closeness(cost_nn, cost_tf)
+        assert check_closeness(loss_torch_fn.item(), cost_nn)
 
 
 @pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
@@ -150,14 +151,14 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         optimizer_torch.step()
 
         for idx in range(n_layers):
-            assert np.allclose(
+            assert check_closeness(
                 dense_layers[idx]._weights, tf_weights_list[idx])
-            assert np.allclose(
+            assert check_closeness(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy())
-            assert np.allclose(dense_layers[idx]._bias, tf_biases_list[idx])
-            assert np.allclose(
+            assert check_closeness(dense_layers[idx]._bias, tf_biases_list[idx])
+            assert check_closeness(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy())
-        assert np.allclose(cost_nn, cost_tf)
-        assert np.allclose(cost_nn, loss_torch_fn.item())
+        assert check_closeness(cost_nn, cost_tf)
+        assert check_closeness(cost_nn, loss_torch_fn.item())

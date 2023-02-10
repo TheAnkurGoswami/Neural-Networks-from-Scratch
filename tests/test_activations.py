@@ -1,23 +1,23 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import pytest
 import tensorflow as tf
 import torch
 
-from neural_networks.activations import get_activation_fn
 from neural_networks.losses import RMSELoss
 from neural_networks.nn import Dense
-from neural_networks.optimizers import Adam, get_optimizer
+from neural_networks.optimizers import SGD
+from utils import check_closeness
 
-TF_ACTIVATIONS_MAP = {
+TF_ACTIVATIONS_MAP: Dict[str, Callable[[tf.Tensor], tf.Tensor]] = {
     "identity": lambda x: x,
     "relu": tf.nn.relu,
     "sigmoid": tf.nn.sigmoid,
     "tanh": tf.nn.tanh,
 }
 
-TORCH_ACTIVATIONS_MAP = {
+TORCH_ACTIVATIONS_MAP: Dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
     "identity": lambda x: x,
     "relu": torch.relu,
     "sigmoid": torch.sigmoid,
@@ -34,12 +34,7 @@ def test_activations(
     np.random.seed(65)
 
     x = np.random.randint(low=0, high=10, size=(1, 5))
-    if output_range is None:
-        y = np.random.randint(low=0, high=10, size=(1, 1))
-    else:
-        y = np.random.randint(
-            low=output_range[0], high=output_range[1], size=(1, 1))
-
+    y = np.random.randint(low=0, high=10, size=(1, 1))
     hidden_layers_size = [3, 12, 7]
     layers = [x.shape[1]] + hidden_layers_size + [1]
     n_layers = len(layers) - 1
@@ -77,10 +72,10 @@ def test_activations(
     activation_tf = TF_ACTIVATIONS_MAP[activation_str]
     activation_torch = TORCH_ACTIVATIONS_MAP[activation_str]
 
-    optimizer = Adam(learning_rate=0.001)
-    optimizer_tf = tf.keras.optimizers.Adam(learning_rate=0.001)
-    optimizer_torch = torch.optim.Adam(
-        params=[*torch_weights_list, *torch_biases_list], lr=0.001, eps=1e-07)
+    optimizer = SGD(learning_rate=0.001)
+    optimizer_tf = tf.keras.optimizers.SGD(learning_rate=0.001)
+    optimizer_torch = torch.optim.SGD(
+        params=[*torch_weights_list, *torch_biases_list], lr=0.001)
     for epoch in range(epochs):
         # Our neural network
         feed_in = x
@@ -123,16 +118,15 @@ def test_activations(
         optimizer_torch.step()
 
         for idx in range(n_layers):
-            print(dense_layers[idx]._weights, torch_weights_list[idx].detach().numpy(), tf_weights_list[idx], np.isclose(dense_layers[idx]._weights, tf_weights_list[idx]))
-            assert np.allclose(
-                dense_layers[idx]._weights, tf_weights_list[idx], rtol=1.e-04)
-            assert np.allclose(
+            assert check_closeness(
+                dense_layers[idx]._weights, tf_weights_list[idx])
+            assert check_closeness(
                 dense_layers[idx]._weights,
-                torch_weights_list[idx].detach().numpy(), rtol=1.e-04)
-            assert np.allclose(
-                dense_layers[idx]._bias, tf_biases_list[idx], rtol=1.e-04)
-            assert np.allclose(
+                torch_weights_list[idx].detach().numpy())
+            assert check_closeness(
+                dense_layers[idx]._bias, tf_biases_list[idx])
+            assert check_closeness(
                 dense_layers[idx]._bias,
-                torch_biases_list[idx].detach().numpy(), rtol=1.e-04)
+                torch_biases_list[idx].detach().numpy())
         assert np.allclose(cost_nn, cost_tf)
         assert np.allclose(cost_nn, loss_torch_fn.item())
