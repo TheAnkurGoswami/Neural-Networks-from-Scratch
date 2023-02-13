@@ -6,6 +6,9 @@ import numpy as np
 
 
 class Activation:
+    def __init__(self) -> None:
+        self._input: np.ndarray = np.array([])
+
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         self._input = inputs
         # Below statement does nothing, just for the type matching

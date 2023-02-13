@@ -8,8 +8,8 @@ NUMBER_TYPE = Union[np.ndarray, float, int, PT_Tensor, TF_Tensor]
 
 
 def check_closeness(
-        a: NUMBER_TYPE,
-        b: NUMBER_TYPE,
+        a: np.ndarray,
+        b: np.ndarray,
         double_check: bool = True,
         tolerance: float = 1e-06) -> bool:
     main_check = np.allclose(a, b)
@@ -17,5 +17,3 @@ def check_closeness(
     if double_check:
         return bool(main_check or np.all(other_check))
     return main_check
-
-

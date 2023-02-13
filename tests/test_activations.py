@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Callable, Dict
 
 import numpy as np
 import pytest
@@ -26,10 +26,8 @@ TORCH_ACTIVATIONS_MAP: Dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
 
 
 @pytest.mark.parametrize(
-    "activation_str, output_range",
-    [("identity", None), ("relu", None), ("sigmoid", None), ("tanh", None)])
-def test_activations(
-        activation_str: str, output_range: Optional[Tuple]) -> None:
+    "activation_str", ["identity", "relu", "sigmoid", "tanh"])
+def test_activations(activation_str: str) -> None:
     epochs = 10
     np.random.seed(65)
 

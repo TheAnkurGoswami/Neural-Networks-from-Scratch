@@ -156,7 +156,8 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
             assert check_closeness(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy())
-            assert check_closeness(dense_layers[idx]._bias, tf_biases_list[idx])
+            assert check_closeness(
+                dense_layers[idx]._bias, tf_biases_list[idx])
             assert check_closeness(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy())
