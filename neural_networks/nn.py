@@ -36,8 +36,13 @@ class Dense:
         """
         self._inputs = inputs
         # z = x.w + b
+        print("x", inputs.shape)
+        print("w", self._weights.shape)
+        print("b", self._bias.shape)
         result = np.matmul(inputs, self._weights) + self._bias
+        print("z", result.shape)
         activation = self._activation.forward(result)
+        print("a", activation.shape)
         return activation
 
     def backprop(self, dA: np.ndarray, optimizer: Optimizer) -> np.ndarray:
@@ -63,14 +68,19 @@ class Dense:
         """
         assert self._inputs is not None
         dZ = self._activation.backprop(dA)
-        dW = np.matmul(self._inputs.T, dZ)
-        dB = dZ
+        print("dZ", dZ.shape)
+        dW = np.matmul(self._inputs.T, dZ) #/ dZ.shape[0]
+        dB = np.matmul(np.ones((1, dZ.shape[0])), dZ)  # Sum of all elements of dZ along batch
+        dB = np.sum(dZ, axis=0)
         dX = np.matmul(dZ, self._weights.T)
-
+        print("dB", dB.shape, dB)
+        print("dW", dW.shape)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         db_change, self._db_history = optimizer.optimize(self._db_history, dB)
 
         # Parametric updations
+        print("orig db", self._bias.shape)
+        print("change", db_change.shape)
         self._weights -= dw_change
         self._bias -= db_change
 

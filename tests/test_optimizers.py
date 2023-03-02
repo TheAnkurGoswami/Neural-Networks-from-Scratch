@@ -130,7 +130,7 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         for idx in range(n_layers):
             assert check_closeness(
                 dense_layers[idx]._weights,
-                tf_weights_list[idx],
+                np.array(tf_weights_list[idx]),
                 double_check=True)
             assert check_closeness(
                 dense_layers[idx]._weights,
@@ -139,11 +139,11 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
 
             assert check_closeness(
                 dense_layers[idx]._bias,
-                tf_biases_list[idx],
+                np.array(tf_biases_list[idx]),
                 double_check=True)
             assert check_closeness(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy(),
                 double_check=True)
         assert check_closeness(cost_nn, cost_tf)
-        assert check_closeness(cost_nn, loss_torch_fn.item())
+        assert check_closeness(cost_nn, loss_torch_fn.detach().numpy())

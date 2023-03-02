@@ -18,6 +18,8 @@ class Activation:
         raise NotImplementedError()
 
     def backprop(self, dA: np.ndarray) -> np.ndarray:
+        print("dA", dA.shape)
+        print("self.derivative", self.derivative().shape)
         return dA * self.derivative()
 
 
@@ -63,7 +65,11 @@ class Softmax(Activation):
         y = sigmoid(x) = 1 / (1 + e^(-x))
         dy/dx = sigmoid(x) * (1 - sigmoid(x))
         """
-        return self.forward(self._input) * (1 - self.forward(self._input))
+
+        kronecker_mask = np.eye(self._input.shape[1])
+        activation = self.forward(self._input)
+        print(activation.shape, kronecker_mask.shape, (kronecker_mask - activation).shape)
+        return np.matmul((kronecker_mask - activation), activation.T)
 
 
 class Tanh(Activation):
@@ -87,5 +93,6 @@ def get_activation_fn(activation: Optional[str]) -> Type[Activation]:
         "relu": ReLU,
         "sigmoid": Sigmoid,
         "tanh": Tanh,
+        "softmax": Softmax,
     }
     return activation_map[activation]
