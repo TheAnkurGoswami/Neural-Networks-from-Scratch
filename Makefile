@@ -17,11 +17,15 @@ help:
 	@echo "pre-commit 	sort python package imports using isort"
 
 ENV ?= venv
+PY_VERSION = 3.8
 
 create-env:
 	python3 -m venv $(ENV)
 	. $(ENV)/bin/activate
 	make install
+
+create-conda-env:
+	conda create -y -n $(ENV) python=$(PY_VERSION)
 
 install:
 	python -m pip install --upgrade pip
