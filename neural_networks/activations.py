@@ -18,8 +18,13 @@ class Activation:
         raise NotImplementedError()
 
     def backprop(self, dA: np.ndarray) -> np.ndarray:
+        """
+        z = x.w + b
+        a = g(z) ; g is activation function.
+        Shape of z is equal to shape of a.
+        Hence, shape of dZ will be equal to dA.
+        """
         print("dA", dA.shape)
-        print("self.derivative", self.derivative().shape)
         return dA * self.derivative()
 
 
