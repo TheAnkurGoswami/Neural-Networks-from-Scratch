@@ -51,19 +51,19 @@ class Sigmoid(Activation):
         """
         return self.forward(self._input) * (1 - self.forward(self._input))
 
+# NOTE: Revisit this
+# class Softmax(Activation):
+#     def forward(self, inputs: np.ndarray) -> np.ndarray:
+#         super().forward(inputs)
+#         return np.exp(inputs) / np.sum(np.exp(inputs))
 
-class Softmax(Activation):
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
-        super().forward(inputs)
-        return np.exp(inputs) / np.sum(np.exp(inputs))
-
-    def derivative(self) -> np.ndarray:
-        # FIXME
-        """
-        y = sigmoid(x) = 1 / (1 + e^(-x))
-        dy/dx = sigmoid(x) * (1 - sigmoid(x))
-        """
-        return self.forward(self._input) * (1 - self.forward(self._input))
+#     def derivative(self) -> np.ndarray:
+#         # FIXME
+#         """
+#         y = sigmoid(x) = 1 / (1 + e^(-x))
+#         dy/dx = sigmoid(x) * (1 - sigmoid(x))
+#         """
+#         return self.forward(self._input) * (1 - self.forward(self._input))
 
 
 class Tanh(Activation):
