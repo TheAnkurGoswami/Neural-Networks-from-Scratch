@@ -10,42 +10,52 @@ from neural_networks.nn import Dense
 from neural_networks.optimizers import get_optimizer
 from utils import check_closeness
 
+# torch.set_printoptions(precision=8)
+# np.set_printoptions(precision=8)
+# tf.keras.backend.set_floatx('float32')
+
 
 def test_no_hidden_layer_simple_nn() -> None:
+    # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.01
     np.random.seed(100)
 
-    x = np.random.randint(low=0, high=10, size=(1, 5))
-    y = np.random.randint(low=0, high=10, size=(1, 1))
+    # Generate random input and output data
+    x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
+    y = np.random.randint(low=0, high=10, size=(1, 1)).astype(np.float32)
 
+    # Initialize a single dense layer neural network
     dense = Dense(in_features=x.shape[1], out_features=1)
     w = dense._weights.copy()
     b = dense._bias.copy()
 
+    # Convert data to TensorFlow tensors
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
     w_tf = tf.Variable(w.astype(np.float32))
     b_tf = tf.Variable(b.astype(np.float32))
 
+    # Convert data to PyTorch tensors
     x_torch = torch.tensor(x.astype(np.float32))
     y_torch = torch.tensor(y.astype(np.float32))
     w_torch = torch.tensor(w.astype(np.float32), requires_grad=True)
     b_torch = torch.tensor(b.astype(np.float32), requires_grad=True)
 
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate,  momentum=0)
+    # Initialize optimizers and loss functions for each framework
+    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
     loss = MSELoss()
-    optimizer_torch = torch.optim.SGD(
-        [w_torch, b_torch], lr=learning_rate, momentum=0)
+    optimizer_torch = torch.optim.SGD([w_torch, b_torch], lr=learning_rate, momentum=0)
     loss_torch = torch.nn.MSELoss()
+
     for _ in range(epochs):
-        # Our neural network
+        # Train the custom neural network
         y_pred = dense.forward(inputs=x)
         cost_nn = loss.forward(y_pred=y_pred, y_true=y)
         dL = loss.backprop()
         dense.backprop(dL, optimizer=optimizer)
 
-        # Tensorflow neural network
+        # Train the TensorFlow neural network
         optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
         loss_fn = tf.keras.losses.MeanSquaredError()
         with tf.GradientTape() as tape:
@@ -55,15 +65,16 @@ def test_no_hidden_layer_simple_nn() -> None:
         grads = tape.gradient(cost_tf, trainable_variables)
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
-        # Pytorch neural network
+        # Train the PyTorch neural network
         optimizer_torch.zero_grad()
         y_pred = torch.matmul(x_torch, w_torch) + b_torch
         loss_torch_fn = loss_torch(y_pred, y_torch)
         loss_torch_fn.backward()
         optimizer_torch.step()
+
+        # Check if the weights, biases, and costs are close across frameworks
         assert check_closeness(dense._weights, w_tf)
-        assert check_closeness(
-            dense._weights, w_torch.detach().numpy())
+        assert check_closeness(dense._weights, w_torch.detach().numpy())
         assert check_closeness(dense._bias, b_tf)
         assert check_closeness(dense._bias, b_torch.detach().numpy())
         assert check_closeness(cost_nn, cost_tf)
@@ -72,13 +83,16 @@ def test_no_hidden_layer_simple_nn() -> None:
 
 @pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
 def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
+    # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
     np.random.seed(100)
 
+    # Generate random input and output data
     x = np.random.randint(low=0, high=10, size=(1, 5))
     y = np.random.randint(low=0, high=10, size=(1, 1))
 
+    # Define the architecture of the neural network
     layers = [x.shape[1]] + hidden_layers_size + [1]
     n_layers = len(layers) - 1
     dense_layers = []
@@ -87,8 +101,9 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
     torch_weights_list = []
     torch_biases_list = []
 
+    # Initialize layers and weights for each framework
     for idx in range(n_layers):
-        dense = Dense(in_features=layers[idx], out_features=layers[idx+1])
+        dense = Dense(in_features=layers[idx], out_features=layers[idx + 1])
         w = dense._weights.copy()
         b = dense._bias.copy()
         dense_layers.append(dense)
@@ -103,18 +118,24 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         torch_weights_list.append(w_torch)
         torch_biases_list.append(b_torch)
 
+    # Convert data to TensorFlow tensors
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
+
+    # Convert data to PyTorch tensors
     x_torch = torch.tensor(x.astype(np.float32))
     y_torch = torch.tensor(y.astype(np.float32))
 
+    # Initialize loss functions and optimizers for each framework
     loss = RMSELoss()
     optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
     optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
     optimizer_torch = torch.optim.SGD(
-        params=[*torch_weights_list, *torch_biases_list], lr=learning_rate)
-    for _ in range(epochs):
-        # Our neural network
+        params=[*torch_weights_list, *torch_biases_list], lr=learning_rate
+    )
+
+    for epoch in range(epochs):
+        # Train the custom neural network
         feed_in = x
         for idx in range(n_layers):
             output = dense_layers[idx].forward(inputs=feed_in)
@@ -123,43 +144,53 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         dL = loss.backprop()
         derivative = dL
         for idx in range(n_layers - 1, -1, -1):
-            derivative = dense_layers[idx].backprop(
-                derivative, optimizer=optimizer)
+            derivative = dense_layers[idx].backprop(derivative, optimizer=optimizer)
 
-        # Tensorflow neural network
+        # Train the TensorFlow neural network
         feed_in = x_tf
         with tf.GradientTape() as tape:
             for idx in range(n_layers):
-                output = tf.matmul(
-                    feed_in, tf_weights_list[idx]) + tf_biases_list[idx]
+                output = tf.matmul(feed_in, tf_weights_list[idx]) + tf_biases_list[idx]
                 feed_in = output
-            cost_tf = tf.sqrt(tf.losses.mean_squared_error(output, y_tf))
+            loss_tf = tf.keras.losses.MeanSquaredError()
+            cost_tf = tf.sqrt(loss_tf(output, y_tf))
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
-        # Pytorch neural network
+        # Train the PyTorch neural network
         feed_in = x_torch
         for idx in range(n_layers):
             optimizer_torch.zero_grad()
-            output = torch.matmul(
-                feed_in, torch_weights_list[idx]) + torch_biases_list[idx]
+            output = (
+                torch.matmul(feed_in, torch_weights_list[idx]) + torch_biases_list[idx]
+            )
             feed_in = output
         loss_torch = torch.nn.MSELoss()
         loss_torch_fn = torch.sqrt(loss_torch(output, y_torch))
         loss_torch_fn.backward()
         optimizer_torch.step()
 
+        # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):
             assert check_closeness(
-                dense_layers[idx]._weights, tf_weights_list[idx])
+                dense_layers[idx]._weights, tf_weights_list[idx]
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and TensorFlow"
             assert check_closeness(
                 dense_layers[idx]._weights,
-                torch_weights_list[idx].detach().numpy())
+                torch_weights_list[idx].detach().numpy(),
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and PyTorch"
+
             assert check_closeness(
-                dense_layers[idx]._bias, tf_biases_list[idx])
+                dense_layers[idx]._bias, tf_biases_list[idx]
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and TensorFlow"
             assert check_closeness(
                 dense_layers[idx]._bias,
-                torch_biases_list[idx].detach().numpy())
-        assert check_closeness(cost_nn, cost_tf)
-        assert check_closeness(cost_nn, loss_torch_fn.item())
+                torch_biases_list[idx].detach().numpy(),
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and PyTorch"
+        assert check_closeness(
+            cost_nn, cost_tf
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and TensorFlow"
+        assert check_closeness(
+            cost_nn, loss_torch_fn.item()
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and PyTorch"
