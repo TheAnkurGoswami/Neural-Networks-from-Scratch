@@ -15,13 +15,16 @@ def check_closeness(
     tolerance: float = 1e-06,
 ) -> bool:
     """
-    Check if two numpy arrays are close to each other within a certain tolerance.
+    Check if two numpy arrays are close to each other within a certain
+    tolerance.
 
     Parameters:
     a (np.ndarray): First array to compare.
     b (np.ndarray): Second array to compare.
-    additional_checks (bool): If True, perform additional checks for closeness. Default is True.
-    tolerance (float): Tolerance value for element-wise comparison. Default is 1e-06.
+    additional_checks (bool): If True, perform additional checks for closeness.
+        Default is True.
+    tolerance (float): Tolerance value for element-wise comparison.
+        Default is 1e-06.
 
     Returns:
     bool: True if arrays are close to each other, False otherwise.

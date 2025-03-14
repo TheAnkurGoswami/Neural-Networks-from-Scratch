@@ -8,7 +8,10 @@ from neural_networks.optimizers import Optimizer
 
 class Dense:
     def __init__(
-        self, in_features: int, out_features: int, activation: Optional[str] = None
+        self,
+        in_features: int,
+        out_features: int,
+        activation: Optional[str] = None,
     ) -> None:
         """
         Initializes the Dense layer.
@@ -16,7 +19,8 @@ class Dense:
         Parameters:
         - in_features (int): Number of input features.
         - out_features (int): Number of output features.
-        - activation (Optional[str]): Activation function to use. Default is None.
+        - activation (Optional[str]): Activation function to use.
+            Default is None.
         """
         self._in_features = in_features
         self._out_features = out_features
@@ -46,10 +50,12 @@ class Dense:
         Performs the forward pass of the neural network layer.
 
         Parameters:
-        - inputs (np.ndarray): The input data to the layer. Shape: (n_inputs, self._in_features)
+        - inputs (np.ndarray): The input data to the layer.
+            Shape: (n_inputs, self._in_features)
 
         Returns:
-        - np.ndarray: The output of the layer after applying the activation function. Shape: (n_inputs, self._out_features)
+        - np.ndarray: The output of the layer after applying the activation
+            function. Shape: (n_inputs, self._out_features)
         """
         self._inputs = inputs
         result = np.matmul(inputs, self._weights) + self._bias
@@ -61,11 +67,14 @@ class Dense:
         Performs the backpropagation step for the layer.
 
         Parameters:
-        - dA (np.ndarray): Gradient of the loss with respect to the activation. Shape: (n_inputs, self._out_features)
-        - optimizer (Optimizer): Optimizer to use for updating the weights and biases.
+        - dA (np.ndarray): Gradient of the loss with respect to the activation.
+            Shape: (n_inputs, self._out_features)
+        - optimizer (Optimizer): Optimizer to use for updating the weights and
+            biases.
 
         Returns:
-        - np.ndarray: Gradient of the loss with respect to the inputs. Shape: (n_inputs, self._in_features)
+        - np.ndarray: Gradient of the loss with respect to the inputs.
+                    Shape: (n_inputs, self._in_features)
         """
         assert self._inputs is not None
         dZ = self._activation.backprop(dA)

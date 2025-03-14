@@ -8,6 +8,11 @@ import torch
 from neural_networks.losses import MSELoss, RMSELoss
 from neural_networks.nn import Dense
 from neural_networks.optimizers import get_optimizer
+from tests.templates import (
+    get_bias_template,
+    get_loss_template,
+    get_weight_template,
+)
 from utils import check_closeness
 
 # torch.set_printoptions(precision=8)
@@ -45,7 +50,9 @@ def test_no_hidden_layer_simple_nn() -> None:
     # Initialize optimizers and loss functions for each framework
     optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
     loss = MSELoss()
-    optimizer_torch = torch.optim.SGD([w_torch, b_torch], lr=learning_rate, momentum=0)
+    optimizer_torch = torch.optim.SGD(
+        [w_torch, b_torch], lr=learning_rate, momentum=0
+    )
     loss_torch = torch.nn.MSELoss()
 
     for _ in range(epochs):
@@ -144,13 +151,18 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         dL = loss.backprop()
         derivative = dL
         for idx in range(n_layers - 1, -1, -1):
-            derivative = dense_layers[idx].backprop(derivative, optimizer=optimizer)
+            derivative = dense_layers[idx].backprop(
+                derivative, optimizer=optimizer
+            )
 
         # Train the TensorFlow neural network
         feed_in = x_tf
         with tf.GradientTape() as tape:
             for idx in range(n_layers):
-                output = tf.matmul(feed_in, tf_weights_list[idx]) + tf_biases_list[idx]
+                output = (
+                    tf.matmul(feed_in, tf_weights_list[idx])
+                    + tf_biases_list[idx]
+                )
                 feed_in = output
             loss_tf = tf.keras.losses.MeanSquaredError()
             cost_tf = tf.sqrt(loss_tf(output, y_tf))
@@ -163,7 +175,8 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         for idx in range(n_layers):
             optimizer_torch.zero_grad()
             output = (
-                torch.matmul(feed_in, torch_weights_list[idx]) + torch_biases_list[idx]
+                torch.matmul(feed_in, torch_weights_list[idx])
+                + torch_biases_list[idx]
             )
             feed_in = output
         loss_torch = torch.nn.MSELoss()
@@ -175,22 +188,28 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int]) -> None:
         for idx in range(n_layers):
             assert check_closeness(
                 dense_layers[idx]._weights, tf_weights_list[idx]
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and TensorFlow"
+            ), (
+                f"Epoch: {epoch}, Layer: {idx + 1} - "
+                f"{get_weight_template('tf')}"
+            )
             assert check_closeness(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy(),
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and PyTorch"
+            ), (
+                f"Epoch: {epoch}, Layer: {idx + 1} - "
+                f"{get_weight_template('pt')}"
+            )
 
             assert check_closeness(
                 dense_layers[idx]._bias, tf_biases_list[idx]
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and TensorFlow"
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('tf')}"
             assert check_closeness(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy(),
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and PyTorch"
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('pt')}"
         assert check_closeness(
             cost_nn, cost_tf
-        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and TensorFlow"
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('tf')}"
         assert check_closeness(
             cost_nn, loss_torch_fn.item()
-        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and PyTorch"
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('pt')}"

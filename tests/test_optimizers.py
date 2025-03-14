@@ -8,6 +8,11 @@ import torch
 from neural_networks.losses import RMSELoss
 from neural_networks.nn import Dense
 from neural_networks.optimizers import get_optimizer
+from tests.templates import (
+    get_bias_template,
+    get_loss_template,
+    get_weight_template,
+)
 from utils import check_closeness
 
 # Mapping of optimizer strings to TensorFlow optimizers
@@ -37,13 +42,19 @@ TORCH_OPTIM_MAP = {
         ("rmsprop", {"learning_rate": 0.001, "rho": 0.9, "epsilon": 1e-07}),
         (
             "adam",
-            {"learning_rate": 0.001, "beta_1": 0.9, "beta_2": 0.999, "epsilon": 1e-07},
+            {
+                "learning_rate": 0.001,
+                "beta_1": 0.9,
+                "beta_2": 0.999,
+                "epsilon": 1e-07,
+            },
         ),
     ],
 )
 def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     """
-    Test the optimizer implementation against TensorFlow and PyTorch optimizers.
+    Test the optimizer implementation against TensorFlow and PyTorch
+    optimizers.
 
     Args:
         optimizer_str (str): The optimizer name.
@@ -68,7 +79,8 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     # Initialize custom optimizer
     optimizer = get_optimizer(optimizer_str)(**kwargs)
 
-    # Initialize layers and weights for custom, TensorFlow, and PyTorch implementations
+    # Initialize layers and weights for custom, TensorFlow, and PyTorch
+    # implementations
     for idx in range(n_layers):
         dense = Dense(in_features=layers[idx], out_features=layers[idx + 1])
         w = dense._weights.copy()
@@ -122,13 +134,18 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         derivative = dL
         optimizer.set_cur_epoch(epoch + 1)
         for idx in range(n_layers - 1, -1, -1):
-            derivative = dense_layers[idx].backprop(derivative, optimizer=optimizer)
+            derivative = dense_layers[idx].backprop(
+                derivative, optimizer=optimizer
+            )
 
         # TensorFlow neural network
         feed_in = x_tf
         with tf.GradientTape() as tape:
             for idx in range(n_layers):
-                output = tf.matmul(feed_in, tf_weights_list[idx]) + tf_biases_list[idx]
+                output = (
+                    tf.matmul(feed_in, tf_weights_list[idx])
+                    + tf_biases_list[idx]
+                )
                 feed_in = output
             loss_fn = tf.keras.losses.MeanSquaredError()
             cost_tf = tf.sqrt(loss_fn(output, y_tf))
@@ -154,22 +171,28 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
         for idx in range(n_layers):
             assert check_closeness(
                 dense_layers[idx]._weights, tf_weights_list[idx]
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and TensorFlow"
+            ), (
+                f"Epoch: {epoch}, Layer: {idx + 1} - "
+                f"{get_weight_template('tf')}"
+            )
             assert check_closeness(
                 dense_layers[idx]._weights,
                 torch_weights_list[idx].detach().numpy(),
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Weights are not close between custom implementation and PyTorch"
+            ), (
+                f"Epoch: {epoch}, Layer: {idx + 1} - "
+                f"{get_weight_template('pt')}"
+            )
 
             assert check_closeness(
                 dense_layers[idx]._bias, tf_biases_list[idx]
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and TensorFlow"
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('tf')}"
             assert check_closeness(
                 dense_layers[idx]._bias,
                 torch_biases_list[idx].detach().numpy(),
-            ), f"Epoch: {epoch}, Layer: {idx + 1} - Biases are not close between custom implementation and PyTorch"
+            ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('pt')}"
         assert check_closeness(
             cost_nn, cost_tf
-        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and TensorFlow"
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('tf')}"
         assert check_closeness(
             cost_nn, loss_torch_fn.item()
-        ), f"Epoch: {epoch}, Layer: {idx + 1} - Loss are not close between custom implementation and PyTorch"
+        ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('pt')}"

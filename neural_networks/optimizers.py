@@ -11,7 +11,9 @@ class Optimizer:
     def __init__(self) -> None:
         self._epoch = 0
 
-    def _initialize_history(self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
+    def _initialize_history(
+        self, parameter: np.ndarray
+    ) -> Dict[str, np.ndarray]:
         """
         Initializes the history for the optimizer.
         This method should be overridden by subclasses.
@@ -51,7 +53,9 @@ class SGD(Optimizer):
         self._learning_rate = learning_rate
         self._momentum = momentum
 
-    def _initialize_history(self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
+    def _initialize_history(
+        self, parameter: np.ndarray
+    ) -> Dict[str, np.ndarray]:
         """
         Initializes the history for the SGD optimizer.
         """
@@ -81,7 +85,8 @@ class SGD(Optimizer):
 
         # Update the accumulated gradient with the current gradient
         accum_grad = (
-            self._momentum * history["accum_grad"] + self._learning_rate * derivative
+            self._momentum * history["accum_grad"]
+            + self._learning_rate * derivative
         )
 
         # Store the updated accumulated gradient in history
@@ -94,8 +99,8 @@ class RMSProp(Optimizer):
     RMSProp optimizer.
     RMSProp is an adaptive learning rate method that divides the learning rate
     for a weight by a running average of the magnitudes of recent gradients
-    for that weight. It maintains a moving (discounted) average of the square of
-    gradients and divides the gradient by the root of this average.
+    for that weight. It maintains a moving (discounted) average of the square
+    of gradients and divides the gradient by the root of this average.
 
     Parameters
     ----------
@@ -115,7 +120,9 @@ class RMSProp(Optimizer):
         self._rho = rho
         self._epsilon = epsilon
 
-    def _initialize_history(self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
+    def _initialize_history(
+        self, parameter: np.ndarray
+    ) -> Dict[str, np.ndarray]:
         """
         Initializes the history for the RMSProp optimizer.
         """
@@ -166,17 +173,21 @@ class RMSProp(Optimizer):
 
 class Adam(Optimizer):
     """
-    The Adam optimizer is an adaptive learning rate optimization algorithm that's been designed specifically for training deep neural networks.
-    It combines the advantages of two other extensions of stochastic gradient descent, namely AdaGrad and RMSProp.
+    The Adam optimizer is an adaptive learning rate optimization algorithm
+    that's been designed specifically for training deep neural networks. It
+    combines the advantages of two other extensions of stochastic gradient
+    descent, namely AdaGrad and RMSProp.
 
     Parameters
     ----------
     learning_rate : float
         The learning rate or step size used for updating the parameters.
     beta_1 : float, optional
-        The exponential decay rate for the first moment estimates (default is 0.9).
+        The exponential decay rate for the first moment estimates
+        (default is 0.9).
     beta_2 : float, optional
-        The exponential decay rate for the second moment estimates (default is 0.999).
+        The exponential decay rate for the second moment estimates
+        (default is 0.999).
     epsilon : float, optional
         A small constant for numerical stability (default is 1e-07).
     """
@@ -194,7 +205,9 @@ class Adam(Optimizer):
         self._beta2 = beta_2
         self._epsilon = epsilon
 
-    def _initialize_history(self, parameter: np.ndarray) -> Dict[str, np.ndarray]:
+    def _initialize_history(
+        self, parameter: np.ndarray
+    ) -> Dict[str, np.ndarray]:
         """
         Initializes the history for the Adam optimizer.
         """

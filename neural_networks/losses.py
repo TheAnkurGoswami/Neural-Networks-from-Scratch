@@ -26,6 +26,7 @@ class Loss:
         """
         raise NotImplementedError()
 
+
 class MSELoss(Loss):
     def __init__(self) -> None:
         """
@@ -59,6 +60,7 @@ class MSELoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         return (2 / self._y_pred.shape[0]) * (self._y_pred - self._y_true)
+
 
 class RMSELoss(Loss):
     def __init__(self) -> None:
@@ -96,4 +98,6 @@ class RMSELoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         assert self._loss is not None
-        return np.divide(self._y_pred - self._y_true, self._y_pred.shape[0] * self._loss)
+        return np.divide(
+            self._y_pred - self._y_true, self._y_pred.shape[0] * self._loss
+        )

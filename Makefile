@@ -29,6 +29,7 @@ create-conda-env:
 
 install:
 	python -m pip install --upgrade pip
+	python -m pip install --progress-bar off --upgrade -r requirements.txt
 	python -m pip install --progress-bar off --upgrade -r requirements.lint.txt
 
 lint-comment:
