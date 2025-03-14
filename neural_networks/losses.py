@@ -1,5 +1,7 @@
 from typing import Optional
+
 import numpy as np
+
 
 class Loss:
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> float:

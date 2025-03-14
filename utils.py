@@ -1,4 +1,5 @@
 from typing import Union
+
 import numpy as np
 from tensorflow import Tensor as TF_Tensor
 from torch import Tensor as PT_Tensor
