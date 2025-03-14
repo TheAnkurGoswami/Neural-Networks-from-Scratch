@@ -51,7 +51,7 @@
         "gitlens.codeLens.symbolScopes": [
             "!Module"
         ],
-        "editor.wordBasedSuggestions": false
+        "editor.wordBasedSuggestions": "off"
     },
     "python.linting.pylintEnabled": true,
     "editor.bracketPairColorization.enabled": true,

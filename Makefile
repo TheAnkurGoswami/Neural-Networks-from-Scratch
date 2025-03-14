@@ -16,8 +16,8 @@ help:
 	@echo "lint-type-check	run type check"
 	@echo "pre-commit 	sort python package imports using isort"
 
-ENV ?= venv
-PY_VERSION = 3.8
+ENV ?= nn_from_scratch
+PY_VERSION = 3.11
 
 create-env:
 	python3 -m venv $(ENV)
@@ -101,3 +101,4 @@ pre-commit:
 
 pytest:
 	./run_pytest.sh $(FILE)
+
