@@ -121,3 +121,6 @@
         "if TYPE_CHECKING:",
         "raise NotImplementedError()",
     ]
+
+[tool.black]
+    line-length = 80
