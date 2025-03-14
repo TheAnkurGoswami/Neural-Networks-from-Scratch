@@ -1,5 +1,3 @@
-
-
 from typing import Optional, Type
 
 import numpy as np
@@ -51,6 +49,7 @@ class Sigmoid(Activation):
         """
         return self.forward(self._input) * (1 - self.forward(self._input))
 
+
 # NOTE: Revisit this
 # class Softmax(Activation):
 #     def forward(self, inputs: np.ndarray) -> np.ndarray:
@@ -76,7 +75,7 @@ class Tanh(Activation):
         y = tanh(x)
         dy/dx = 1 - (tanh(x))^2
         """
-        return (1 - np.square(np.tanh(self._input)))
+        return 1 - np.square(np.tanh(self._input))
 
 
 def get_activation_fn(activation: Optional[str]) -> Type[Activation]:

@@ -1,4 +1,3 @@
-
 from typing import Optional
 
 import numpy as np
@@ -46,4 +45,5 @@ class RMSELoss(Loss):
         assert self._y_true is not None
         assert self._loss is not None
         return np.divide(
-            self._y_pred - self._y_true, self._y_pred.shape[0] * self._loss)
+            self._y_pred - self._y_true, self._y_pred.shape[0] * self._loss
+        )
