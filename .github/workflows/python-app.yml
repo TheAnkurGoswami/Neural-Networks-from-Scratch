@@ -65,13 +65,13 @@ jobs:
       run: |
         make lint-pycodestyle
 
-    - name: Lint Code (type-check)
-      run: |
-        make lint-type-check
-
-    # - name: Lint Code (pylint)
+    # - name: Lint Code (type-check)
     #   run: |
-    #     make lint-pylint
+    #     make lint-type-check
+
+    - name: Lint Code (pylint)
+      run: |
+        make lint-pylint
 
     - name: Run tests
       run: |
