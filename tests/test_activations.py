@@ -21,6 +21,7 @@ TF_ACTIVATIONS_MAP: Dict[str, Callable[[tf.Tensor], tf.Tensor]] = {
     "relu": tf.nn.relu,
     "sigmoid": tf.nn.sigmoid,
     "tanh": tf.nn.tanh,
+    "softmax": tf.nn.softmax,
 }
 
 TORCH_ACTIVATIONS_MAP: Dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
@@ -28,6 +29,7 @@ TORCH_ACTIVATIONS_MAP: Dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
     "relu": torch.relu,
     "sigmoid": torch.sigmoid,
     "tanh": torch.tanh,
+    "softmax": torch.softmax,
 }
 
 
