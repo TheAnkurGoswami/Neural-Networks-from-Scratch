@@ -245,18 +245,18 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int], normalize_input
     "hidden_layers_size",
     [
         [5],
-        # [2, 3],
-        # [6, 4, 10]
+        [2, 3],
+        [6, 4, 10]
     ]
 )
+@pytest.mark.parametrize("n_classes", [3, 5])
 @pytest.mark.parametrize("normalize_inputs", [True, False])
-def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_inputs: bool) -> None:
+def test_n_hidden_layer_classification(hidden_layers_size: List[int], n_classes: int, normalize_inputs: bool) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
     batch_size = 3
     np.random.seed(100)
-    n_classes = 3
 
     # Generate random input and output data
     if not normalize_inputs:
@@ -270,7 +270,6 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_
         yhot[ix, cls] = 1
 
     # Define the architecture of the neural network
-    # FIXME: try with multiple output neurons
     layers = [x.shape[1]] + hidden_layers_size + [n_classes]
     n_layers = len(layers) - 1
     dense_layers = []
@@ -329,6 +328,7 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_
         for idx in range(n_layers):
             output = dense_layers[idx].forward(inputs=feed_in)
             feed_in = output
+        # print("output", output, yhot)
         cost_nn = loss.forward(y_pred=output, y_true=yhot)
         dL = loss.backprop()
         derivative = dL
@@ -352,10 +352,11 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_
                     output = tf.nn.relu(output)
                 feed_in = output
             loss_tf = tf.keras.losses.CategoricalCrossentropy()
-            cost_tf = loss_tf(output, y_tf)
+            # print("output", output, y_tf)
+            cost_tf = loss_tf(y_tf, output)
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        print("grads", grads)
+        # print("grads", grads)
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
         # Train the PyTorch neural network
@@ -368,6 +369,7 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_
             )
             if idx == n_layers - 1:
                 output = torch.softmax(output, dim=1)
+                # print("output", output, y_torch)
                 output = torch.clip(output, 1e-07, 1.0 - 1e-07) # numerical stability
             else:
                 output = torch.relu(output)
@@ -378,15 +380,14 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], normalize_
         loss_torch_fn = loss_torch(log_probs, y_torch)
         loss_torch_fn.backward()
         optimizer_torch.step()
-        for twt in torch_weights_list:
-            print(twt.shape, twt.grad)
-        for twb in torch_biases_list:
-            print(twb.shape, twb.grad)
+        # for twt in torch_weights_list:
+        #     print(twt.shape, twt.grad)
+        # for twb in torch_biases_list:
+        #     print(twb.shape, twb.grad)
         print("loss", epoch, cost_nn, cost_tf, loss_torch_fn.item())
 
         # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):
-            print(dense_layers[idx]._weights, tf_weights_list[idx])
             assert check_closeness(
                 dense_layers[idx]._weights, tf_weights_list[idx]
             ), (
