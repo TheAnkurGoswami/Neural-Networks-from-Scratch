@@ -78,16 +78,14 @@ class Dense:
         """
         assert self._inputs is not None
         dZ = self._activation.backprop(dA)
-        print("dZ", dZ.shape)
         dW = np.matmul(self._inputs.T, dZ) #/ dZ.shape[0]
         dB = np.matmul(np.ones((1, dZ.shape[0])), dZ)  # Sum of all elements of dZ along batch
-        dB = np.sum(dZ, axis=0)
+        dB = np.sum(dZ, axis=0, keepdims=True)
         dX = np.matmul(dZ, self._weights.T)
-        print("dB", dB.shape, dB)
-        print("dW", dW.shape)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         db_change, self._db_history = optimizer.optimize(self._db_history, dB)
-
+        # print("dW", dW.shape, dW)
+        # print("dB", dB.shape, dB)
         # Parametric updates
         self._weights -= dw_change
         self._bias -= db_change
