@@ -55,10 +55,34 @@ class Identity(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Performs the forward pass for the activation function.
+
+        For the Identity function, the output is the same as the input.
+        The input is stored as the activation output.
+
+        Args:
+            inputs (np.ndarray): The input data to the activation function.
+
+        Returns:
+            np.ndarray: The output after applying the activation function.
+        """
+        self._activation = inputs
+
         super().forward(inputs)
         return inputs
 
     def derivative(self) -> np.ndarray:
+        """
+        Computes the derivative of the Identity activation function.
+
+        The derivative of the Identity function is always 1.
+
+        Returns:
+            np.ndarray: An array of ones with the same shape as the input,
+            representing the derivative of the activation function.
+        """
+
         return np.ones_like(self._input)
 
 
@@ -68,10 +92,37 @@ class ReLU(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Applies the ReLU (Rectified Linear Unit) activation function to the
+        input data.
+        The ReLU function is defined as:
+            f(x) = max(0, x)
+        Parameters:
+            inputs (np.ndarray): The input data, typically a NumPy array of any
+            shape.
+        Returns:
+            np.ndarray: The output data after applying the ReLU activation
+            function,
+                        with the same shape as the input.
+        Formula:
+            output = np.where(inputs > 0, inputs, 0)
+        """
+
         super().forward(inputs)
         return np.where(inputs > 0, inputs, 0)
 
     def derivative(self) -> np.ndarray:
+        """
+        Computes the derivative of the activation function.
+        For the ReLU (Rectified Linear Unit) activation function, the
+        derivative is defined as:
+            f'(x) = 1 if x > 0
+                    0 if x <= 0
+        Returns:
+            np.ndarray: An array containing the derivative values for the
+            input.
+        """
+
         return np.where(self._input > 0, 1, 0)
 
 
@@ -81,16 +132,32 @@ class Sigmoid(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Performs the forward pass of the activation function.
+        This method applies the sigmoid activation function to the input data.
+        The sigmoid function is defined as:
+            σ(x) = 1 / (1 + e^(-x))
+        where `x` is the input.
+        Parameters:
+            inputs (np.ndarray): The input data as a NumPy array.
+        Returns:
+            np.ndarray: The output of the sigmoid activation function applied
+            to the input.
+        """
+
         self._activation = 1 / (1 + np.exp(-1 * inputs))
         return self._activation
 
     def derivative(self) -> np.ndarray:
         """
-        Compute the derivative of the sigmoid function.
-
+        Computes the derivative of the activation function.
+        The derivative is calculated using the formula:
+            f'(x) = f(x) * (1 - f(x))
+        where f(x) is the activation value.
         Returns:
-            np.ndarray: Derivative of the sigmoid function.
+            np.ndarray: The derivative of the activation function.
         """
+
         return self._activation * (1 - self._activation)
 
 
@@ -100,26 +167,48 @@ class Tanh(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Performs the forward pass using the hyperbolic tangent (tanh)
+        activation function.
+        The tanh activation function is defined as:
+            tanh(x) = (e^x - e^(-x)) / (e^x + e^(-x))
+        Parameters:
+            inputs (np.ndarray): The input data to the activation function.
+        Returns:
+            np.ndarray: The output after applying the tanh activation function.
+        """
+
         self._activation = np.tanh(inputs)
         return self._activation
 
     def derivative(self) -> np.ndarray:
         """
-        Compute the derivative of the tanh function.
-
+        Computes the derivative of the activation function.
+        Formula:
+            f'(x) = 1 - tanh^2(x)
         Returns:
-            np.ndarray: Derivative of the tanh function.
+            np.ndarray: The derivative of the activation function.
         """
+
         return 1 - np.square(self._activation)
 
 
 class Softmax(Activation):
     def forward(self, inputs: np.ndarray):
-        r"""
-        inputs -> Z
-        \hat{y}_{i} = \frac{e^{z_{i}}}{\sum_{j} e^{z_{j}}}
-        output -> Y_hat
         """
+        Performs the forward pass of the activation function.
+        This method computes the activation values using the softmax function:
+            softmax(x_i) = exp(x_i) / Σ(exp(x_j))
+        where x_i is an input value, and the denominator is the sum of the
+        exponentials of all input values.
+        Args:
+            inputs (np.ndarray): The input array for which the activation is
+            computed.
+        Returns:
+            np.ndarray: The computed activation values as a normalized
+            probability distribution.
+        """
+
         num = np.exp(inputs)
         denom = np.sum(num)
         self._activation = num / denom
@@ -127,14 +216,32 @@ class Softmax(Activation):
 
     def derivative(self):
         r"""
-        \frac{d\hat{y}_{i}}{dz_{i}} = \hat{y}_{i} (1 - \hat{y}_{i})
-        \frac{d\hat{y}_{i}}{dz_{j}} = -\hat{y}_{i} \hat{y}_{j}
+        Computes the Jacobian matrix of the derivative of the activation
+        function.
 
-        \frac{d\hat{Y}}{dZ} = J_{ij}
-        \text{J}_{ij} = \begin{cases}
-            \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i=j,
-            \\ -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j
-            \end{cases}
+        The Jacobian matrix represents the partial derivatives of the output of
+        the activation function with respect to its input. For a softmax
+        activation function, the Jacobian matrix is defined as:
+
+        .. math::
+            \frac{\partial \hat{y}_{i}}{\partial z_{i}} =
+                \hat{y}_{i} (1 - \hat{y}_{i})
+
+            \frac{\partial \hat{y}_{i}}{\partial z_{j}} =
+                -\hat{y}_{i} \hat{y}_{j}, \quad i \neq j
+
+        The Jacobian matrix :math:`\frac{\partial \hat{Y}}{\partial Z}` is
+        given by:
+
+        .. math::
+            J_{ij} =
+            \begin{cases}
+                \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i = j, \\
+                -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j
+
+        Returns:
+            numpy.ndarray: The Jacobian matrix of shape (n, n), where n is the
+            number of elements in the activation output.
         """
         jacobian_mat = np.zeros(
             (self._activation.shape[1], self._activation.shape[1])
@@ -152,8 +259,6 @@ class Softmax(Activation):
                         -self._activation[0][row_idx]
                         * self._activation[0][col_idx]
                     )
-
-        # print(jacobian_mat)
         return jacobian_mat
 
     def backprop(self, dA: np.ndarray):
