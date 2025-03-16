@@ -10,6 +10,7 @@ class Activation:
 
     def __init__(self) -> None:
         self._input: np.ndarray = np.array([])
+        self._activation: np.ndarray = np.array([])
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
         """
@@ -23,7 +24,8 @@ class Activation:
         """
         self._input = inputs
         # Below statement does nothing, just for the type matching
-        return np.zeros_like(inputs)
+        self._activation = np.zeros_like(inputs)
+        return self._activation
 
     def derivative(self) -> np.ndarray:
         """
@@ -79,8 +81,8 @@ class Sigmoid(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
-        super().forward(inputs)
-        return 1 / (1 + np.exp(-1 * inputs))
+        self._activation = 1 / (1 + np.exp(-1 * inputs))
+        return self._activation
 
     def derivative(self) -> np.ndarray:
         """
@@ -89,8 +91,7 @@ class Sigmoid(Activation):
         Returns:
             np.ndarray: Derivative of the sigmoid function.
         """
-        sigmoid_output = self.forward(self._input)
-        return sigmoid_output * (1 - sigmoid_output)
+        return self._activation * (1 - self._activation)
 
 
 class Tanh(Activation):
@@ -99,8 +100,8 @@ class Tanh(Activation):
     """
 
     def forward(self, inputs: np.ndarray) -> np.ndarray:
-        super().forward(inputs)
-        return np.tanh(inputs)
+        self._activation = np.tanh(inputs)
+        return self._activation
 
     def derivative(self) -> np.ndarray:
         """
@@ -109,37 +110,48 @@ class Tanh(Activation):
         Returns:
             np.ndarray: Derivative of the tanh function.
         """
-        return 1 - np.square(np.tanh(self._input))
+        return 1 - np.square(self._activation)
 
 
 class Softmax(Activation):
-    def forward(self, inputs: np .ndarray):
-        """
+    def forward(self, inputs: np.ndarray):
+        r"""
         inputs -> Z
         \hat{y}_{i} = \frac{e^{z_{i}}}{\sum_{j} e^{z_{j}}}
         output -> Y_hat
         """
-        super().forward(inputs)
         num = np.exp(inputs)
         denom = np.sum(num)
-        self.activation = num / denom
-        return self.activation
+        self._activation = num / denom
+        return self._activation
 
     def derivative(self):
-        """
+        r"""
         \frac{d\hat{y}_{i}}{dz_{i}} = \hat{y}_{i} (1 - \hat{y}_{i})
         \frac{d\hat{y}_{i}}{dz_{j}} = -\hat{y}_{i} \hat{y}_{j}
 
         \frac{d\hat{Y}}{dZ} = J_{ij}
-        \text{J}_{ij} = \begin{cases} \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i=j, \\ -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j\end{cases}
+        \text{J}_{ij} = \begin{cases}
+            \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i=j,
+            \\ -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j
+            \end{cases}
         """
-        jacobian_mat = np.zeros((self.activation.shape[1], self.activation.shape[1]))
-        for i in range(self.activation.shape[1]):
-            for j in range(i, self.activation.shape[1]):
-                if i == j:
-                    jacobian_mat[i, j] = self.activation[0][i] * (1 - self.activation[0][i])
+        jacobian_mat = np.zeros(
+            (self._activation.shape[1], self._activation.shape[1])
+        )
+        for row_idx in range(self._activation.shape[1]):
+            for col_idx in range(row_idx, self._activation.shape[1]):
+                if row_idx == col_idx:
+                    jacobian_mat[row_idx, col_idx] = self._activation[0][
+                        row_idx
+                    ] * (1 - self._activation[0][row_idx])
                 else:
-                    jacobian_mat[i, j] = jacobian_mat[j, i] = -self.activation[0][i] * self.activation[0][j]
+                    jacobian_mat[row_idx, col_idx] = jacobian_mat[
+                        col_idx, row_idx
+                    ] = (
+                        -self._activation[0][row_idx]
+                        * self._activation[0][col_idx]
+                    )
 
         # print(jacobian_mat)
         return jacobian_mat
@@ -151,6 +163,7 @@ class Softmax(Activation):
         jac_mat = self.derivative()
         dZ = np.matmul(dA, jac_mat)
         return dZ
+
 
 def get_activation_fn(activation: Optional[str]) -> Type[Activation]:
     """

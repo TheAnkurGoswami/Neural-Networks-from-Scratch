@@ -17,14 +17,14 @@ from utils import check_closeness
 
 torch.set_printoptions(precision=8)
 np.set_printoptions(precision=8)
-tf.keras.backend.set_floatx('float32')
+tf.keras.backend.set_floatx("float32")
 
 
 def test_no_hidden_layer_simple_nn() -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.01
-    batch_size = 3
+    # batch_size = 3
     np.random.seed(100)
 
     # Generate random input and output data
@@ -88,16 +88,19 @@ def test_no_hidden_layer_simple_nn() -> None:
         assert check_closeness(cost_nn, cost_tf)
         assert check_closeness(loss_torch_fn.item(), cost_nn)
 
+
 # FIXME: add different regression loss tests
 @pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
 @pytest.mark.parametrize("normalize_inputs", [True, False])
 @pytest.mark.parametrize("output_neurons", [1])
 # FIXME: try with multiple output neurons
-def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int], normalize_inputs: bool, output_neurons: int) -> None:
+def test_n_hidden_layer_simple_nn(
+    hidden_layers_size: List[int], normalize_inputs: bool, output_neurons: int
+) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    batch_size = 3
+    # batch_size = 3
     np.random.seed(100)
 
     # Generate random input and output data
@@ -105,7 +108,9 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int], normalize_input
         x = np.random.randint(low=0, high=10, size=(1, 5))
     else:
         x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
-        x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(x, axis=1, keepdims=True)
+        x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(
+            x, axis=1, keepdims=True
+        )
     y = np.random.randint(low=0, high=10, size=(1, output_neurons))
 
     # Define the architecture of the neural network
@@ -241,21 +246,16 @@ def test_n_hidden_layer_simple_nn(hidden_layers_size: List[int], normalize_input
         # print("loss", epoch, cost_nn, cost_tf, loss_torch_fn.item())
 
 
-@pytest.mark.parametrize(
-    "hidden_layers_size",
-    [
-        [5],
-        [2, 3],
-        [6, 4, 10]
-    ]
-)
+@pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
 @pytest.mark.parametrize("n_classes", [3, 5])
 @pytest.mark.parametrize("normalize_inputs", [True, False])
-def test_n_hidden_layer_classification(hidden_layers_size: List[int], n_classes: int, normalize_inputs: bool) -> None:
+def test_n_hidden_layer_classification(
+    hidden_layers_size: List[int], n_classes: int, normalize_inputs: bool
+) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    batch_size = 3
+    # batch_size = 3
     np.random.seed(100)
 
     # Generate random input and output data
@@ -263,7 +263,9 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], n_classes:
         x = np.random.randint(low=0, high=10, size=(1, 5))
     else:
         x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
-        x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(x, axis=1, keepdims=True)
+        x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(
+            x, axis=1, keepdims=True
+        )
     y = np.random.randint(low=0, high=n_classes, size=(1, 1))
     yhot = np.zeros((y.shape[0], n_classes), dtype=np.int8)
     for ix, cls in enumerate(y):
@@ -290,7 +292,7 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], n_classes:
             dense = Dense(
                 in_features=layers[idx],
                 out_features=layers[idx + 1],
-                activation="relu"
+                activation="relu",
             )
         w = dense._weights.copy()
         b = dense._bias.copy()
@@ -370,7 +372,9 @@ def test_n_hidden_layer_classification(hidden_layers_size: List[int], n_classes:
             if idx == n_layers - 1:
                 output = torch.softmax(output, dim=1)
                 # print("output", output, y_torch)
-                output = torch.clip(output, 1e-07, 1.0 - 1e-07) # numerical stability
+                output = torch.clip(
+                    output, 1e-07, 1.0 - 1e-07
+                )  # numerical stability
             else:
                 output = torch.relu(output)
             feed_in = output

@@ -85,7 +85,8 @@ class RMSELoss(Loss):
         self._y_true = y_true
         self._y_pred = y_pred
         self._loss = np.sqrt(
-            np.mean(np.square(y_pred - y_true), keepdims=True))
+            np.mean(np.square(y_pred - y_true), keepdims=True)
+        )
         assert self._loss is not None
         return self._loss
 
@@ -111,9 +112,7 @@ class CrossEntropyLoss(Loss):
         self._loss: Optional[np.ndarray] = None
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> float:
-        """
-
-        """
+        """ """
         self._y_true = y_true
         self._y_pred = y_pred
         self._y_pred = np.clip(y_pred, 1e-07, 1.0 - 1e-07)

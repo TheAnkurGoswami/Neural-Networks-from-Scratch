@@ -78,8 +78,10 @@ class Dense:
         """
         assert self._inputs is not None
         dZ = self._activation.backprop(dA)
-        dW = np.matmul(self._inputs.T, dZ) #/ dZ.shape[0]
-        dB = np.matmul(np.ones((1, dZ.shape[0])), dZ)  # Sum of all elements of dZ along batch
+        dW = np.matmul(self._inputs.T, dZ)  # / dZ.shape[0]
+        dB = np.matmul(
+            np.ones((1, dZ.shape[0])), dZ
+        )  # Sum of all elements of dZ along batch
         dB = np.sum(dZ, axis=0, keepdims=True)
         dX = np.matmul(dZ, self._weights.T)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
