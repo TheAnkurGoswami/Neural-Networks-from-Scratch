@@ -210,8 +210,10 @@ class Softmax(Activation):
         """
 
         num = np.exp(inputs)
-        denom = np.sum(num)
+        # print("inputs", inputs)
+        denom = np.sum(num, axis=1, keepdims=True)
         self._activation = num / denom
+        # print("self._activ", self._activation)
         return self._activation
 
     def derivative(self):
@@ -244,21 +246,22 @@ class Softmax(Activation):
             number of elements in the activation output.
         """
         jacobian_mat = np.zeros(
-            (self._activation.shape[1], self._activation.shape[1])
+            (self._activation.shape[0], self._activation.shape[1], self._activation.shape[1])
         )
-        for row_idx in range(self._activation.shape[1]):
-            for col_idx in range(row_idx, self._activation.shape[1]):
-                if row_idx == col_idx:
-                    jacobian_mat[row_idx, col_idx] = self._activation[0][
-                        row_idx
-                    ] * (1 - self._activation[0][row_idx])
-                else:
-                    jacobian_mat[row_idx, col_idx] = jacobian_mat[
-                        col_idx, row_idx
-                    ] = (
-                        -self._activation[0][row_idx]
-                        * self._activation[0][col_idx]
-                    )
+        for batch_idx in range(self._activation.shape[0]):
+            for row_idx in range(self._activation.shape[1]):
+                for col_idx in range(row_idx, self._activation.shape[1]):
+                    if row_idx == col_idx:
+                        jacobian_mat[batch_idx, row_idx, col_idx] = self._activation[batch_idx][
+                            row_idx
+                        ] * (1 - self._activation[batch_idx][row_idx])
+                    else:
+                        jacobian_mat[batch_idx, row_idx, col_idx] = jacobian_mat[
+                            batch_idx, col_idx, row_idx
+                        ] = (
+                            -self._activation[batch_idx][row_idx]
+                            * self._activation[batch_idx][col_idx]
+                        )
         return jacobian_mat
 
     def backprop(self, dA: np.ndarray):
@@ -266,6 +269,13 @@ class Softmax(Activation):
         dA = dL/da = dY_hat
         """
         jac_mat = self.derivative()
+        dZ_arr = []
+        # print("jacobian shape", jac_mat.shape, dA.shape)
+        for batch_idx in range(jac_mat.shape[0]):
+            dZ = np.matmul(dA, jac_mat[batch_idx])
+            dZ_arr.append(dZ)
+        # print(np.array(dZ_arr))
+        return (np.mean(dZ_arr, axis=0))
         dZ = np.matmul(dA, jac_mat)
         return dZ
 
