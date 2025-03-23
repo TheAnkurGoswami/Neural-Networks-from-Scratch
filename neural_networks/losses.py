@@ -160,8 +160,14 @@ class CrossEntropyLoss(Loss):
 
         self._y_true = y_true
         self._y_pred = y_pred
-        self._y_pred = np.clip(y_pred, 1e-07, 1.0 - 1e-07)
-        self._loss = -1 * np.sum(y_true * np.log(self._y_pred))
+        self._y_pred = np.clip(y_pred, 1e-07, 1.0 - 1e-07)  # Avoid log(0) issues
+        # print(y_pred.shape, (y_true * np.log(self._y_pred)).shape)
+        sample_loss = np.sum(y_true * np.log(self._y_pred), axis=1)  # Compute loss per sample
+        # print(y_true, np.log(self._y_pred), sample_loss)
+        # print(sample_loss.shape, np.sum(sample_loss))
+        # print(np.mean(np.sum(y_true * np.log(self._y_pred), axis=1)))
+
+        self._loss = -1 * np.mean(sample_loss)  # Average over all samples
         assert self._loss is not None
         return self._loss
 
@@ -188,4 +194,4 @@ class CrossEntropyLoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         assert self._loss is not None
-        return -1 * np.divide(self._y_true, self._y_pred)
+        return (-1 / self._y_true.shape[0])* np.divide(self._y_true, self._y_pred)
