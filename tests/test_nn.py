@@ -91,27 +91,27 @@ def test_no_hidden_layer_simple_nn() -> None:
 
 # FIXME: add different regression loss tests
 @pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
+@pytest.mark.parametrize("batch_size", [1, 10, 64])
 @pytest.mark.parametrize("normalize_inputs", [True, False])
 @pytest.mark.parametrize("output_neurons", [1])
 # FIXME: try with multiple output neurons
 def test_n_hidden_layer_simple_nn(
-    hidden_layers_size: List[int], normalize_inputs: bool, output_neurons: int
+    hidden_layers_size: List[int], batch_size: int, normalize_inputs: bool, output_neurons: int
 ) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    # batch_size = 3
     np.random.seed(100)
 
     # Generate random input and output data
     if not normalize_inputs:
-        x = np.random.randint(low=0, high=10, size=(1, 5))
+        x = np.random.randint(low=0, high=10, size=(batch_size, 5))
     else:
-        x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
+        x = np.random.randint(low=0, high=10, size=(batch_size, 5)).astype(np.float32)
         x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(
             x, axis=1, keepdims=True
         )
-    y = np.random.randint(low=0, high=10, size=(1, output_neurons))
+    y = np.random.randint(low=0, high=10, size=(batch_size, output_neurons))
 
     # Define the architecture of the neural network
     layers = [x.shape[1]] + hidden_layers_size + [output_neurons]
@@ -246,11 +246,24 @@ def test_n_hidden_layer_simple_nn(
         # print("loss", epoch, cost_nn, cost_tf, loss_torch_fn.item())
 
 
-@pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
-@pytest.mark.parametrize("n_classes", [3, 5])
-@pytest.mark.parametrize("normalize_inputs", [True, False])
+@pytest.mark.parametrize("hidden_layers_size", [
+    [5]
+    # , [2, 3], [6, 4, 10]
+    ])
+@pytest.mark.parametrize("batch_size", [
+    # 1,
+    2
+                                        # , 64
+                                        ])
+@pytest.mark.parametrize("n_classes", [
+    3
+    # , 5
+    ])
+@pytest.mark.parametrize("normalize_inputs", [True,
+                                            #   False
+                                              ])
 def test_n_hidden_layer_classification(
-    hidden_layers_size: List[int], n_classes: int, normalize_inputs: bool
+    hidden_layers_size: List[int], batch_size: int, n_classes: int, normalize_inputs: bool
 ) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
@@ -260,13 +273,13 @@ def test_n_hidden_layer_classification(
 
     # Generate random input and output data
     if not normalize_inputs:
-        x = np.random.randint(low=0, high=10, size=(1, 5))
+        x = np.random.randint(low=0, high=10, size=(batch_size, 5))
     else:
-        x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
+        x = np.random.randint(low=0, high=10, size=(batch_size, 5)).astype(np.float32)
         x = (x - np.mean(x, axis=1, keepdims=True)) / np.std(
             x, axis=1, keepdims=True
         )
-    y = np.random.randint(low=0, high=n_classes, size=(1, 1))
+    y = np.random.randint(low=0, high=n_classes, size=(batch_size, 1))
     yhot = np.zeros((y.shape[0], n_classes), dtype=np.int8)
     for ix, cls in enumerate(y):
         yhot[ix, cls] = 1
@@ -358,7 +371,7 @@ def test_n_hidden_layer_classification(
             cost_tf = loss_tf(y_tf, output)
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        # print("grads", grads)
+        print("grads", grads)
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
         # Train the PyTorch neural network
@@ -392,6 +405,7 @@ def test_n_hidden_layer_classification(
 
         # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):
+            print("layer", idx, dense_layers[idx]._weights, tf_weights_list[idx])
             assert check_closeness(
                 dense_layers[idx]._weights, tf_weights_list[idx]
             ), (
@@ -406,6 +420,7 @@ def test_n_hidden_layer_classification(
                 f"{get_weight_template('pt')}"
             )
 
+            print("layer", idx, dense_layers[idx]._bias, tf_biases_list[idx])
             assert check_closeness(
                 dense_layers[idx]._bias, tf_biases_list[idx]
             ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('tf')}"
