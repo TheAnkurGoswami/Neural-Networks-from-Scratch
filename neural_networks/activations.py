@@ -268,18 +268,37 @@ class Softmax(Activation):
         """
         dA = dL/da = dY_hat
         """
+        print("dA", dA.shape, dA)
         jac_mat = self.derivative()
         dZ_arr = []
         # print("jacobian shape", jac_mat.shape, dA.shape)
+        # print("="*100)
         for batch_idx in range(jac_mat.shape[0]):
-            dZ = np.matmul(dA, jac_mat[batch_idx])
-            dZ_arr.append(dZ)
+            # dZ = np.matmul(dA, jac_mat[batch_idx])
+            # print("dA", dA.shape, dA)
+            dZ = np.matmul(dA[[batch_idx], :], jac_mat[batch_idx])
+            # print("jac_mat", jac_mat[batch_idx].shape, jac_mat[batch_idx])
+            dZ_arr.append(dZ.flatten())
+        # print("="*100)
+        return np.array(dZ_arr)
         # print(np.array(dZ_arr))
         return (np.mean(dZ_arr, axis=0))
         dZ = np.matmul(dA, jac_mat)
         return dZ
 
+# def batch_matrix_vector_multiply(matrix: np.ndarray, batch_matrices: np.ndarray) -> np.ndarray:
+#     """
+#     Multiplies each row of a matrix with the corresponding matrix in a batch of matrices.
 
+#     Args:
+#     matrix (np.ndarray): A 2D array of shape (r, m).
+#     batch_matrices (np.ndarray): A 3D array of shape (r, m, m).
+
+#     Returns:
+#     np.ndarray: A 2D array of shape (r, m) resulting from the multiplication.
+#     """
+#     result = np.einsum('rm,rmm->rm', matrix, batch_matrices)
+#     return result
 def get_activation_fn(activation: Optional[str]) -> Type[Activation]:
     """
     Get the activation function class based on the activation name.
