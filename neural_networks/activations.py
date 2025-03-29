@@ -1,6 +1,12 @@
-from typing import Optional, Type
+import logging
+from typing import Optional, Type, Union
 
 import numpy as np
+import torch as pt
+
+backend_module = "pt"
+backend = np if backend_module == "np" else pt
+ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
 
 
 class Activation:
@@ -9,10 +15,14 @@ class Activation:
     """
 
     def __init__(self) -> None:
-        self._input: np.ndarray = np.array([])
-        self._activation: np.ndarray = np.array([])
+        self._input: ARRAY_TYPE = (
+            np.array([]) if backend_module == "np" else pt.tensor([])
+        )
+        self._activation: ARRAY_TYPE = (
+            np.array([]) if backend_module == "np" else pt.tensor([])
+        )
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Perform the forward pass of the activation function.
 
@@ -24,10 +34,10 @@ class Activation:
         """
         self._input = inputs
         # Below statement does nothing, just for the type matching
-        self._activation = np.zeros_like(inputs)
+        self._activation = backend.zeros_like(inputs)
         return self._activation
 
-    def derivative(self) -> np.ndarray:
+    def derivative(self) -> ARRAY_TYPE:
         """
         Compute the derivative of the activation function.
 
@@ -36,7 +46,7 @@ class Activation:
         """
         raise NotImplementedError()
 
-    def backprop(self, dA: np.ndarray) -> np.ndarray:
+    def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Perform the backward pass of the activation function.
 
@@ -54,7 +64,7 @@ class Identity(Activation):
     Identity activation function.
     """
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Performs the forward pass for the activation function.
 
@@ -72,7 +82,7 @@ class Identity(Activation):
         super().forward(inputs)
         return inputs
 
-    def derivative(self) -> np.ndarray:
+    def derivative(self) -> ARRAY_TYPE:
         """
         Computes the derivative of the Identity activation function.
 
@@ -83,7 +93,7 @@ class Identity(Activation):
             representing the derivative of the activation function.
         """
 
-        return np.ones_like(self._input)
+        return backend.ones_like(self._input)
 
 
 class ReLU(Activation):
@@ -91,7 +101,7 @@ class ReLU(Activation):
     ReLU activation function.
     """
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Applies the ReLU (Rectified Linear Unit) activation function to the
         input data.
@@ -109,9 +119,9 @@ class ReLU(Activation):
         """
 
         super().forward(inputs)
-        return np.where(inputs > 0, inputs, 0)
+        return backend.where(inputs > 0, inputs, 0)
 
-    def derivative(self) -> np.ndarray:
+    def derivative(self) -> ARRAY_TYPE:
         """
         Computes the derivative of the activation function.
         For the ReLU (Rectified Linear Unit) activation function, the
@@ -123,7 +133,7 @@ class ReLU(Activation):
             input.
         """
 
-        return np.where(self._input > 0, 1, 0)
+        return backend.where(self._input > 0, 1, 0)
 
 
 class Sigmoid(Activation):
@@ -131,7 +141,7 @@ class Sigmoid(Activation):
     Sigmoid activation function.
     """
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Performs the forward pass of the activation function.
         This method applies the sigmoid activation function to the input data.
@@ -145,10 +155,10 @@ class Sigmoid(Activation):
             to the input.
         """
 
-        self._activation = 1 / (1 + np.exp(-1 * inputs))
+        self._activation = 1 / (1 + backend.exp(-1 * inputs))
         return self._activation
 
-    def derivative(self) -> np.ndarray:
+    def derivative(self) -> ARRAY_TYPE:
         """
         Computes the derivative of the activation function.
         The derivative is calculated using the formula:
@@ -166,7 +176,7 @@ class Tanh(Activation):
     Tanh activation function.
     """
 
-    def forward(self, inputs: np.ndarray) -> np.ndarray:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Performs the forward pass using the hyperbolic tangent (tanh)
         activation function.
@@ -178,10 +188,10 @@ class Tanh(Activation):
             np.ndarray: The output after applying the tanh activation function.
         """
 
-        self._activation = np.tanh(inputs)
+        self._activation = backend.tanh(inputs)
         return self._activation
 
-    def derivative(self) -> np.ndarray:
+    def derivative(self) -> ARRAY_TYPE:
         """
         Computes the derivative of the activation function.
         Formula:
@@ -190,11 +200,11 @@ class Tanh(Activation):
             np.ndarray: The derivative of the activation function.
         """
 
-        return 1 - np.square(self._activation)
+        return 1 - backend.square(self._activation)
 
 
 class Softmax(Activation):
-    def forward(self, inputs: np.ndarray):
+    def forward(self, inputs: ARRAY_TYPE):
         """
         Performs the forward pass of the activation function.
         This method computes the activation values using the softmax function:
@@ -208,12 +218,20 @@ class Softmax(Activation):
             np.ndarray: The computed activation values as a normalized
             probability distribution.
         """
+        logging.info(f"Softmax Inputs: {inputs}")
 
-        num = np.exp(inputs)
-        # print("inputs", inputs)
-        denom = np.sum(num, axis=1, keepdims=True)
+        # Stabilize exponent calculation
+        if backend_module == "np":
+            inputs = inputs - np.max(inputs, axis=1, keepdims=True)
+        elif backend_module == "pt":
+            inputs = inputs - pt.max(inputs, dim=1, keepdim=True).values
+        logging.info(f"Softmax Inputs: {inputs}")
+        num = backend.exp(inputs)
+        denom = backend.sum(num, dim=1, keepdim=True)
         self._activation = num / denom
-        # print("self._activ", self._activation)
+        logging.info(f"Softmax Numerator (num): {num}")
+        logging.info(f"Softmax Denominator (denom): {denom}")
+        logging.info(f"Softmax Activation Output: {self._activation}")
         return self._activation
 
     def derivative(self):
@@ -227,10 +245,10 @@ class Softmax(Activation):
 
         .. math::
             \frac{\partial \hat{y}_{i}}{\partial z_{i}} =
-                \hat{y}_{i} (1 - \hat{y}_{i})
+            \hat{y}_{i} (1 - \hat{y}_{i})
 
             \frac{\partial \hat{y}_{i}}{\partial z_{j}} =
-                -\hat{y}_{i} \hat{y}_{j}, \quad i \neq j
+            -\hat{y}_{i} \hat{y}_{j}, \quad i \neq j
 
         The Jacobian matrix :math:`\frac{\partial \hat{Y}}{\partial Z}` is
         given by:
@@ -238,67 +256,46 @@ class Softmax(Activation):
         .. math::
             J_{ij} =
             \begin{cases}
-                \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i = j, \\
-                -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j
+            \hat{y}_{i} (1 - \hat{y}_{i}) & \text{if } i = j, \\
+            -\hat{y}_{i} \hat{y}_{j} & \text{if } i \neq j
 
         Returns:
-            numpy.ndarray: The Jacobian matrix of shape (n, n), where n is the
+            torch.Tensor: The Jacobian matrix of shape (n, n), where n is the
             number of elements in the activation output.
         """
-        jacobian_mat = np.zeros(
-            (self._activation.shape[0], self._activation.shape[1], self._activation.shape[1])
-        )
-        for batch_idx in range(self._activation.shape[0]):
-            for row_idx in range(self._activation.shape[1]):
-                for col_idx in range(row_idx, self._activation.shape[1]):
+        batch_size, num_classes = self._activation.shape
+        jacobian_mat = backend.zeros(batch_size, num_classes, num_classes)
+        for batch_idx in range(batch_size):
+            for row_idx in range(num_classes):
+                for col_idx in range(row_idx, num_classes):
                     if row_idx == col_idx:
-                        jacobian_mat[batch_idx, row_idx, col_idx] = self._activation[batch_idx][
-                            row_idx
-                        ] * (1 - self._activation[batch_idx][row_idx])
+                        jacobian_mat[batch_idx, row_idx, col_idx] = (
+                            self._activation[batch_idx, row_idx]
+                            * (1 - self._activation[batch_idx, row_idx])
+                        )
                     else:
-                        jacobian_mat[batch_idx, row_idx, col_idx] = jacobian_mat[
-                            batch_idx, col_idx, row_idx
-                        ] = (
-                            -self._activation[batch_idx][row_idx]
-                            * self._activation[batch_idx][col_idx]
+                        jacobian_mat[batch_idx, row_idx, col_idx] = (
+                            jacobian_mat[batch_idx, col_idx, row_idx]
+                        ) = (
+                            -self._activation[batch_idx, row_idx]
+                            * self._activation[batch_idx, col_idx]
                         )
         return jacobian_mat
 
-    def backprop(self, dA: np.ndarray):
+    def backprop(self, dA: pt.Tensor):
         """
         dA = dL/da = dY_hat
         """
-        print("dA", dA.shape, dA)
         jac_mat = self.derivative()
         dZ_arr = []
-        # print("jacobian shape", jac_mat.shape, dA.shape)
-        # print("="*100)
         for batch_idx in range(jac_mat.shape[0]):
-            # dZ = np.matmul(dA, jac_mat[batch_idx])
-            # print("dA", dA.shape, dA)
-            dZ = np.matmul(dA[[batch_idx], :], jac_mat[batch_idx])
-            # print("jac_mat", jac_mat[batch_idx].shape, jac_mat[batch_idx])
+            dZ = backend.matmul(
+                dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
+            )
             dZ_arr.append(dZ.flatten())
-        # print("="*100)
-        return np.array(dZ_arr)
-        # print(np.array(dZ_arr))
-        return (np.mean(dZ_arr, axis=0))
-        dZ = np.matmul(dA, jac_mat)
-        return dZ
+        return backend.stack(dZ_arr)
 
-# def batch_matrix_vector_multiply(matrix: np.ndarray, batch_matrices: np.ndarray) -> np.ndarray:
-#     """
-#     Multiplies each row of a matrix with the corresponding matrix in a batch of matrices.
 
-#     Args:
-#     matrix (np.ndarray): A 2D array of shape (r, m).
-#     batch_matrices (np.ndarray): A 3D array of shape (r, m, m).
-
-#     Returns:
-#     np.ndarray: A 2D array of shape (r, m) resulting from the multiplication.
-#     """
-#     result = np.einsum('rm,rmm->rm', matrix, batch_matrices)
-#     return result
 def get_activation_fn(activation: Optional[str]) -> Type[Activation]:
     """
     Get the activation function class based on the activation name.
