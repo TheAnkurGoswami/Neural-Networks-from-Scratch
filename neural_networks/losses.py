@@ -53,6 +53,10 @@ class MSELoss(Loss):
         Returns:
             ARRAY_TYPE: Computed MSE loss.
         """
+        if backend_module == "pt":
+            y_true = pt.tensor(y_true, dtype=pt.float32)
+        elif backend_module == "np":
+            y_true = np.array(y_true, dtype=np.float32)
         self._y_true = y_true
         self._y_pred = y_pred
         return backend.mean((y_pred - y_true) ** 2)
@@ -93,6 +97,10 @@ class RMSELoss(Loss):
         Returns:
             ARRAY_TYPE: Computed RMSE loss.
         """
+        if backend_module == "pt":
+            y_true = pt.tensor(y_true, dtype=pt.float32)
+        elif backend_module == "np":
+            y_true = np.array(y_true, dtype=np.float32)
         self._y_true = y_true
         self._y_pred = y_pred
         self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
