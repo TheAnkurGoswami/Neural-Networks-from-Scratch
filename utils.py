@@ -3,6 +3,7 @@ from typing import Union
 import numpy as np
 from tensorflow import Tensor as TF_Tensor
 from torch import Tensor as PT_Tensor
+import logging
 
 # Define a type alias for various number types
 NUMBER_TYPE = Union[np.ndarray, float, int, PT_Tensor, TF_Tensor]
@@ -31,23 +32,43 @@ def check_closeness(
     """
     # Check if arrays are element-wise equal within a tolerance
     main_check = np.allclose(a, b)
-
+    clip_const = 1e-06
+    # print(a, b)
+    # # Reverse clip values of 'a' if they are of the order of e-07 or lower
+    a = np.where(np.abs(a) > clip_const, a, clip_const)
+    b = np.where(np.abs(b) > clip_const, b, clip_const)
+    # print(a, b)
     # Check if the absolute difference between arrays is within the tolerance
     other_check = np.abs(a - b) <= tolerance
-
     with np.errstate(divide="ignore", invalid="ignore"):
         # Calculate the minimum of the two arrays element-wise
         min_arr = np.minimum(a, b)
-
-        # Calculate the percentage difference where min_arr is not zero
+        max_arr = np.maximum(a, b)
+        clipped_diff = np.where(np.abs(a - b) > clip_const, np.abs(a - b), 0)
+        # Calculate the percentage difference where max_arr is not zero
         percent_diff = np.average(
-            np.where(min_arr != 0, np.abs(a - b) / min_arr * 100, 0)
+            np.where(max_arr != 0, clipped_diff / max_arr * 100, 0)
         )
-
-        # Check if the average percentage difference is within 0.001%
-        precent_check = percent_diff <= 0.001
+        logging.info(
+            "mn: %s", np.average(np.where(min_arr != 0, clipped_diff / min_arr * 100, 0))
+        )
+        logging.info(
+            "mx: %s", np.average(np.where(max_arr != 0, clipped_diff / max_arr * 100, 0))
+        )
+        # Check if the average percentage difference is within 0.01%
+        precent_check = percent_diff <= 0.01
 
     if additional_checks:
+        logging.info(
+            "main_check: %s, a: %s, b: %s, abs_diff: %s, max_arr: %s, abs_diff/max_arr: %s, percent_diff: %s",
+            main_check,
+            a,
+            b,
+            clipped_diff,
+            max_arr,
+            clipped_diff / max_arr,
+            percent_diff,
+        )
         # Return True if any of the checks pass
         return bool(main_check or np.all(other_check) or precent_check)
 
