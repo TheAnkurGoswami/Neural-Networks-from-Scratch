@@ -66,23 +66,17 @@ def test_activations(activation_str: str) -> None:
             out_features=layers[idx + 1],
             activation=activation_str,
         )
-        w: np.ndarray = dense._weights.copy()
-        b: np.ndarray = dense._bias.copy()
+        w = dense._weights.clone().detach()
+        b = dense._bias.clone().detach()
         dense_layers.append(dense)
 
-        # Store TensorFlow weights and biases
-        w_tf: tf.Variable = tf.Variable(w.astype(np.float32))
-        b_tf: tf.Variable = tf.Variable(b.astype(np.float32))
+        w_tf = tf.Variable(w)
+        b_tf = tf.Variable(b)
         tf_weights_list.append(w_tf)
         tf_biases_list.append(b_tf)
 
-        # Store PyTorch weights and biases
-        w_torch: torch.Tensor = torch.tensor(
-            w.astype(np.float32), requires_grad=True
-        )
-        b_torch: torch.Tensor = torch.tensor(
-            b.astype(np.float32), requires_grad=True
-        )
+        w_torch = w.clone().detach().requires_grad_(True)
+        b_torch = b.clone().detach().requires_grad_(True)
         torch_weights_list.append(w_torch)
         torch_biases_list.append(b_torch)
 
@@ -167,13 +161,14 @@ def test_activations(activation_str: str) -> None:
         # PyTorch models
         for idx in range(n_layers):
             assert check_closeness(
-                dense_layers[idx]._weights, tf_weights_list[idx]
+                dense_layers[idx]._weights.detach().numpy(),
+                tf_weights_list[idx],
             ), (
                 f"Epoch: {epoch}, Layer: {idx + 1} - "
                 f"{get_weight_template('tf')}"
             )
             assert check_closeness(
-                dense_layers[idx]._weights,
+                dense_layers[idx]._weights.detach().numpy(),
                 torch_weights_list[idx].detach().numpy(),
             ), (
                 f"Epoch: {epoch}, Layer: {idx + 1} - "
@@ -181,15 +176,15 @@ def test_activations(activation_str: str) -> None:
             )
 
             assert check_closeness(
-                dense_layers[idx]._bias, tf_biases_list[idx]
+                dense_layers[idx]._bias.detach().numpy(), tf_biases_list[idx]
             ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('tf')}"
             assert check_closeness(
-                dense_layers[idx]._bias,
+                dense_layers[idx]._bias.detach().numpy(),
                 torch_biases_list[idx].detach().numpy(),
             ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_bias_template('pt')}"
         assert check_closeness(
-            cost_nn, cost_tf
+            cost_nn.detach().numpy(), cost_tf
         ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('tf')}"
         assert check_closeness(
-            cost_nn, loss_torch_fn.item()
+            cost_nn.detach().numpy(), loss_torch_fn.item()
         ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('pt')}"
