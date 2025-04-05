@@ -62,6 +62,7 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     """
     epochs = 10
     np.random.seed(65)
+    torch.manual_seed(65)
 
     # Generate random input and output data
     x = np.random.randint(low=0, high=10, size=(1, 5))

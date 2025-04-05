@@ -45,6 +45,7 @@ def test_activations(activation_str: str) -> None:
     """
     epochs: int = 10
     np.random.seed(65)
+    torch.manual_seed(65)
 
     # Generate random input and output data
     x: np.ndarray = np.random.randint(low=0, high=10, size=(1, 5))
