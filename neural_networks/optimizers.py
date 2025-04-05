@@ -1,6 +1,11 @@
-from typing import Dict, Optional, Tuple, Type
+from typing import Dict, Optional, Tuple, Type, Union
 
 import numpy as np
+import torch as pt
+
+backend_module = "pt"
+backend = np if backend_module == "np" else pt
+ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
 
 
 class Optimizer:
@@ -12,8 +17,8 @@ class Optimizer:
         self._epoch = 0
 
     def _initialize_history(
-        self, parameter: np.ndarray
-    ) -> Dict[str, np.ndarray]:
+        self, parameter: ARRAY_TYPE
+    ) -> Dict[str, ARRAY_TYPE]:
         """
         Initializes the history for the optimizer.
         This method should be overridden by subclasses.
@@ -27,8 +32,8 @@ class Optimizer:
         self._epoch = epoch
 
     def optimize(
-        self, history: Optional[Dict[str, np.ndarray]], derivative: np.ndarray
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        self, history: Optional[Dict[str, ARRAY_TYPE]], derivative: ARRAY_TYPE
+    ) -> Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:
         """
         Performs an optimization step.
         This method should be overridden by subclasses.
@@ -54,29 +59,29 @@ class SGD(Optimizer):
         self._momentum = momentum
 
     def _initialize_history(
-        self, parameter: np.ndarray
-    ) -> Dict[str, np.ndarray]:
+        self, parameter: ARRAY_TYPE
+    ) -> Dict[str, ARRAY_TYPE]:
         """
         Initializes the history for the SGD optimizer.
         """
-        return {"accum_grad": np.zeros_like(parameter)}
+        return {"accum_grad": backend.zeros_like(parameter)}
 
     def optimize(
-        self, history: Optional[Dict[str, np.ndarray]], derivative: np.ndarray
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        self, history: Optional[Dict[str, ARRAY_TYPE]], derivative: ARRAY_TYPE
+    ) -> Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:
         """
         Performs an optimization step using the SGD algorithm.
 
         Parameters
         ----------
-        history : Optional[Dict[str, np.ndarray]]
+        history : Optional[Dict[str, ARRAY_TYPE]]
             The history of the optimizer.
-        derivative : np.ndarray
+        derivative : ARRAY_TYPE
             The gradient of the loss function with respect to the parameters.
 
         Returns
         -------
-        Tuple[np.ndarray, Dict[str, np.ndarray]]
+        Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]
             The parameter update and the updated history.
         """
         # Initialize history if it's None
@@ -121,29 +126,29 @@ class RMSProp(Optimizer):
         self._epsilon = epsilon
 
     def _initialize_history(
-        self, parameter: np.ndarray
-    ) -> Dict[str, np.ndarray]:
+        self, parameter: ARRAY_TYPE
+    ) -> Dict[str, ARRAY_TYPE]:
         """
         Initializes the history for the RMSProp optimizer.
         """
-        return {"accum_sq_grad": np.zeros_like(parameter)}
+        return {"accum_sq_grad": backend.zeros_like(parameter)}
 
     def optimize(
-        self, history: Optional[Dict[str, np.ndarray]], derivative: np.ndarray
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        self, history: Optional[Dict[str, ARRAY_TYPE]], derivative: ARRAY_TYPE
+    ) -> Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:
         """
         Performs an optimization step using the RMSprop algorithm.
 
         Parameters
         ----------
-        history : Optional[Dict[str, np.ndarray]]
+        history : Optional[Dict[str, ARRAY_TYPE]]
             The history of the optimizer.
-        derivative : np.ndarray
+        derivative : ARRAY_TYPE
             The gradient of the loss function with respect to the parameters.
 
         Returns
         -------
-        Tuple[np.ndarray, Dict[str, np.ndarray]]
+        Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]
             The parameter update and the updated history.
         """
         # Initialize history if it's None
@@ -153,11 +158,11 @@ class RMSProp(Optimizer):
         # Update the accumulated squared gradient with the current gradient
         accum_sq_grad = self._rho * history["accum_sq_grad"] + (
             1 - self._rho
-        ) * np.square(derivative)
+        ) * backend.square(derivative)
 
         # Compute the parameter update using the RMSProp formula
         new_change = (self._learning_rate * derivative) / (
-            np.sqrt(accum_sq_grad) + self._epsilon
+            backend.sqrt(accum_sq_grad) + self._epsilon
         )
 
         # Store the updated accumulated squared gradient in history
@@ -206,32 +211,32 @@ class Adam(Optimizer):
         self._epsilon = epsilon
 
     def _initialize_history(
-        self, parameter: np.ndarray
-    ) -> Dict[str, np.ndarray]:
+        self, parameter: ARRAY_TYPE
+    ) -> Dict[str, ARRAY_TYPE]:
         """
         Initializes the history for the Adam optimizer.
         """
         return {
-            "first_moment_t": np.zeros_like(parameter),
-            "second_moment_t": np.zeros_like(parameter),
+            "first_moment_t": backend.zeros_like(parameter),
+            "second_moment_t": backend.zeros_like(parameter),
         }
 
     def optimize(
-        self, history: Optional[Dict[str, np.ndarray]], derivative: np.ndarray
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        self, history: Optional[Dict[str, ARRAY_TYPE]], derivative: ARRAY_TYPE
+    ) -> Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:
         """
         Performs an optimization step using the Adam algorithm.
 
         Parameters
         ----------
-        history : Optional[Dict[str, np.ndarray]]
+        history : Optional[Dict[str, ARRAY_TYPE]]
             The history of the optimizer.
-        derivative : np.ndarray
+        derivative : ARRAY_TYPE
             The gradient of the loss function with respect to the parameters.
 
         Returns
         -------
-        Tuple[np.ndarray, Dict[str, np.ndarray]]
+        Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]
             The parameter update and the updated history.
         """
         # Get the current epoch
@@ -249,22 +254,27 @@ class Adam(Optimizer):
         first_moment_t = (
             self._beta1 * first_moment_t_prev + (1 - self._beta1) * derivative
         )
-
         # Update biased second raw moment estimate
         second_moment_t = self._beta2 * second_moment_t_prev + (
             1 - self._beta2
-        ) * np.square(derivative)
+        ) * backend.square(derivative)
 
         # Compute bias-corrected first moment estimate
-        first_mom_corr = 1 - np.power(self._beta1, epoch)
+        if backend_module == "pt":
+            first_mom_corr = 1 - pt.pow(pt.tensor(self._beta1), epoch)
+        elif backend_module == "np":
+            first_mom_corr = 1 - np.power(self._beta1, epoch)
         corrected_first_moment_t = first_moment_t / first_mom_corr
 
         # Compute bias-corrected second raw moment estimate
-        second_mom_corr = 1 - np.power(self._beta2, epoch)
+        if backend_module == "pt":
+            second_mom_corr = 1 - pt.pow(pt.tensor(self._beta2), epoch)
+        elif backend_module == "np":
+            second_mom_corr = 1 - np.power(self._beta2, epoch)
         corrected_second_moment_t = second_moment_t / second_mom_corr
 
         # Compute the denominator for the update rule
-        denom = np.sqrt(corrected_second_moment_t) + self._epsilon
+        denom = backend.sqrt(corrected_second_moment_t) + self._epsilon
 
         # Compute the parameter update
         new_change = (self._learning_rate * corrected_first_moment_t) / denom

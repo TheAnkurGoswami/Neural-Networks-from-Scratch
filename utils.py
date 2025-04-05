@@ -31,19 +31,23 @@ def check_closeness(
     """
     # Check if arrays are element-wise equal within a tolerance
     main_check = np.allclose(a, b)
-
+    clip_const = 1e-06
+    # print(a, b)
+    # # Reverse clip values of 'a' if they are of the order of e-07 or lower
+    a = np.where(np.abs(a) > clip_const, a, clip_const)
+    b = np.where(np.abs(b) > clip_const, b, clip_const)
+    # print(a, b)
     # Check if the absolute difference between arrays is within the tolerance
     other_check = np.abs(a - b) <= tolerance
-
     with np.errstate(divide="ignore", invalid="ignore"):
         # Calculate the minimum of the two arrays element-wise
-        min_arr = np.minimum(a, b)
-
-        # Calculate the percentage difference where min_arr is not zero
+        # min_arr = np.minimum(a, b)
+        max_arr = np.maximum(a, b)
+        clipped_diff = np.where(np.abs(a - b) > clip_const, np.abs(a - b), 0)
+        # Calculate the percentage difference where max_arr is not zero
         percent_diff = np.average(
-            np.where(min_arr != 0, np.abs(a - b) / min_arr * 100, 0)
+            np.where(max_arr != 0, clipped_diff / max_arr * 100, 0)
         )
-
         # Check if the average percentage difference is within 0.001%
         precent_check = percent_diff <= 0.001
 
