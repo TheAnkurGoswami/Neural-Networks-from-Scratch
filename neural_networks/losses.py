@@ -155,16 +155,12 @@ class CrossEntropyLoss(Loss):
             - Clips the predicted probabilities to avoid numerical instability
                 when taking the logarithm.
         """
+
+        self._y_pred = y_pred
         if backend_module == "pt":
             self._y_true = pt.tensor(y_true, dtype=pt.float32)
-            self._y_pred = backend.clamp(
-                y_pred, 1e-07, 1.0 - 1e-07
-            )  # Avoid log(0) issues
         elif backend_module == "np":
             self._y_true = np.array(y_true, dtype=np.float32)
-            self._y_pred = np.clip(
-                y_pred, 1e-07, 1.0 - 1e-07
-            )  # Avoid log(0) issues
         # Compute loss per sample
         sample_loss = backend.sum(
             self._y_true * backend.log(self._y_pred), dim=1
