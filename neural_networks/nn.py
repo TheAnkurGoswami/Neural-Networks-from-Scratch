@@ -105,7 +105,10 @@ class Dense:
         assert self._inputs is not None
         dZ = self._activation.backprop(dA)
         dW = backend.matmul(self._inputs.T, dZ)
-        dB = backend.sum(dZ, dim=0, keepdim=True)
+        if backend_module == "pt":
+            dB = backend.sum(dZ, dim=0, keepdim=True)
+        elif backend_module == "np":
+            dB = backend.sum(dZ, axis=0, keepdims=True)
         dX = backend.matmul(dZ, self._weights.T)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         db_change, self._db_history = optimizer.optimize(self._db_history, dB)
