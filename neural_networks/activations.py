@@ -4,6 +4,8 @@ from typing import Optional, Type, Union
 import numpy as np
 import torch as pt
 
+from neural_networks.clip import Clip
+
 backend_module = "pt"
 backend = np if backend_module == "np" else pt
 ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
@@ -218,20 +220,18 @@ class Softmax(Activation):
             np.ndarray: The computed activation values as a normalized
             probability distribution.
         """
-        logging.info(f"Softmax Inputs: {inputs}")
 
         # Stabilize exponent calculation
         if backend_module == "np":
             inputs = inputs - np.max(inputs, axis=1, keepdims=True)
         elif backend_module == "pt":
             inputs = inputs - pt.max(inputs, dim=1, keepdim=True).values
-        logging.info(f"Softmax Inputs: {inputs}")
         num = backend.exp(inputs)
         denom = backend.sum(num, dim=1, keepdim=True)
         self._activation = num / denom
-        logging.info(f"Softmax Numerator (num): {num}")
-        logging.info(f"Softmax Denominator (denom): {denom}")
-        logging.info(f"Softmax Activation Output: {self._activation}")
+        self.clip = Clip(1e-07, 1.0 - 1e-07)
+        self._activation = self.clip.forward(self._activation)
+        # return clipped_activation
         return self._activation
 
     def derivative(self):
@@ -288,6 +288,7 @@ class Softmax(Activation):
         """
         jac_mat = self.derivative()
         dZ_arr = []
+        dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
                 dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
