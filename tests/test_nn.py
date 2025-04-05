@@ -20,6 +20,7 @@ import os
 torch.set_printoptions(precision=10)
 np.set_printoptions(precision=10)
 tf.keras.backend.set_floatx("float32")
+DEBUG = False
 
 
 def test_no_hidden_layer_simple_nn() -> None:
@@ -272,7 +273,6 @@ def test_n_hidden_layer_classification(
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    # batch_size = 3
     np.random.seed(100)
     torch.manual_seed(100)
 
@@ -290,7 +290,6 @@ def test_n_hidden_layer_classification(
     yhot = np.zeros((y.shape[0], n_classes), dtype=np.int8)
     for ix, cls in enumerate(y):
         yhot[ix, cls] = 1
-    print(yhot)
     # Define the architecture of the neural network
     layers = [x.shape[1]] + hidden_layers_size + [n_classes]
     n_layers = len(layers) - 1
@@ -316,8 +315,6 @@ def test_n_hidden_layer_classification(
                 activation="relu",
                 retain_grad=True,
             )
-        # w = dense._weights.copy()
-        # b = dense._bias.copy()
         w = dense._weights.clone().detach()
         b = dense._bias.clone().detach()
         dense_layers.append(dense)
@@ -331,8 +328,7 @@ def test_n_hidden_layer_classification(
         b_torch = b.clone().detach().requires_grad_(True)
         torch_weights_list.append(w_torch)
         torch_biases_list.append(b_torch)
-    #     print(w_torch, w_torch.detach().numpy())
-    # assert False
+
     # Convert data to TensorFlow tensors
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(yhot.astype(np.float32))
@@ -359,7 +355,6 @@ def test_n_hidden_layer_classification(
         cost_nn = loss.forward(y_pred=output, y_true=yhot)
         dL = loss.backprop()
         derivative = dL
-        print("dL", derivative)
         for idx in range(n_layers - 1, -1, -1):
             derivative = dense_layers[idx].backprop(
                 derivative, optimizer=optimizer
@@ -379,11 +374,9 @@ def test_n_hidden_layer_classification(
                     output = tf.nn.relu(output)
                 feed_in = output
             loss_tf = tf.keras.losses.CategoricalCrossentropy()
-            # print("output", output, y_tf)
             cost_tf = loss_tf(y_tf, output)
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        # print("grads", grads)
         optimizer_tf.apply_gradients(zip(grads, trainable_variables))
 
         # Train the PyTorch neural network
@@ -396,66 +389,63 @@ def test_n_hidden_layer_classification(
                 torch.matmul(feed_in, torch_weights_list[idx])
                 + torch_biases_list[idx]
             )
-            torch_outputs.append(output)
-            torch_outputs[
-                -1
-            ].retain_grad()  # Retain gradients for non-leaf tensors
+            if DEBUG:
+                torch_outputs.append(output)
+                torch_outputs[
+                    -1
+                ].retain_grad()  # Retain gradients for non-leaf tensors
             if idx == n_layers - 1:
                 output = torch.softmax(output, dim=1)
-                # print("output", output, y_torch)
                 output = torch.clip(
                     output, 1e-07, 1.0 - 1e-07
                 )  # numerical stability
             else:
                 output = torch.relu(output)
-            activations.append(output)
-            activations[
-                -1
-            ].retain_grad()  # Retain gradients for non-leaf tensors
+            if DEBUG:
+                activations.append(output)
+                activations[
+                    -1
+                ].retain_grad()  # Retain gradients for non-leaf tensors
             feed_in = output
         loss_torch = torch.nn.CrossEntropyLoss()
-        # Log to nullify the effect of having Softmax inside CorssEntropyLoss
-        log_probs = torch.log(output)
+        # # Log to nullify the effect of having Softmax inside CorssEntropyLoss
+        log_probs = torch.log(output)  # Apply log to the softmax output
         loss_torch_fn = loss_torch(log_probs, y_torch)
         loss_torch_fn.retain_grad()  # Retain gradients for non-leaf tensors
         loss_torch_fn.backward()
-        print("dL", loss_torch_fn.grad)
         optimizer_torch.step()
-
-        for idx, (cus_layer, pt_layer) in enumerate(
-            zip(dense_layers, torch_outputs)
-        ):
+        if DEBUG:
+            # Log the gradients for debugging
+            for idx, (cus_layer, pt_layer) in enumerate(
+                zip(dense_layers, torch_outputs)
+            ):
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dA: {activations[idx].shape}, Gradient: {activations[idx].grad}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dZ (Custom): {cus_layer._dZ.shape}, Values: {cus_layer._dZ}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dZ (PyTorch): {pt_layer.shape}, Gradient: {pt_layer.grad}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dW (Custom): {cus_layer._dW.shape}, Values: {cus_layer._dW}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dW (PyTorch): {torch_weights_list[idx].shape}, Gradient: {torch_weights_list[idx].grad}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dB (Custom): {cus_layer._dB.shape}, Values: {cus_layer._dB}"
+                )
+                logging.info(
+                    f"Epoch {epoch}, Layer {idx + 1} - dB (PyTorch): {torch_biases_list[idx].shape}, Gradient: {torch_biases_list[idx].grad}"
+                )
             logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dA: {activations[idx].shape}, Gradient: {activations[idx].grad}"
+                f"Loss at epoch {epoch}: Custom NN: {cost_nn}, TensorFlow: {cost_tf}, PyTorch: {loss_torch_fn.item()}"
             )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dZ (Custom): {cus_layer._dZ.shape}, Values: {cus_layer._dZ}"
-            )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dZ (PyTorch): {pt_layer.shape}, Gradient: {pt_layer.grad}"
-            )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dW (Custom): {cus_layer._dW.shape}, Values: {cus_layer._dW}"
-            )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dW (PyTorch): {torch_weights_list[idx].shape}, Gradient: {torch_weights_list[idx].grad}"
-            )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dB (Custom): {cus_layer._dB.shape}, Values: {cus_layer._dB}"
-            )
-            logging.info(
-                f"Epoch {epoch}, Layer {idx + 1} - dB (PyTorch): {torch_biases_list[idx].shape}, Gradient: {torch_biases_list[idx].grad}"
-            )
-        logging.info(
-            f"Loss at epoch {epoch}: Custom NN: {cost_nn}, TensorFlow: {cost_tf}, PyTorch: {loss_torch_fn.item()}"
-        )
-        # assert False
 
         # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):
-            logging.info(
-                f"Layer {idx + 1}: Custom Weights: {dense_layers[idx]._weights}, TensorFlow Weights: {tf_weights_list[idx]}"
-            )
             assert check_closeness(
                 dense_layers[idx]._weights.detach().numpy(),
                 tf_weights_list[idx],
@@ -469,10 +459,6 @@ def test_n_hidden_layer_classification(
             ), (
                 f"Epoch: {epoch}, Layer: {idx + 1} - "
                 f"{get_weight_template('pt')}"
-            )
-
-            logging.info(
-                f"Layer {idx + 1}: Custom Bias: {dense_layers[idx]._bias}, TensorFlow Bias: {tf_biases_list[idx]}"
             )
             assert check_closeness(
                 dense_layers[idx]._bias.detach().numpy(), tf_biases_list[idx]
