@@ -170,11 +170,6 @@ class CrossEntropyLoss(Loss):
             self._y_true * backend.log(self._y_pred), dim=1
         )
         self._loss = -backend.mean(sample_loss)  # Average over all samples
-        logging.info(f"log(y_pred): {backend.log(self._y_pred)}")
-        logging.info(f"y_pred: {self._y_pred}")
-        logging.info(
-            f"CrossEntropyLoss forward pass computed with loss: {self._loss.item()}"
-        )
         assert self._loss is not None
         return self._loss
 
@@ -193,4 +188,4 @@ class CrossEntropyLoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         assert self._loss is not None
-        return (-1 / self._y_true.size(0)) * (self._y_true / self._y_pred)
+        return (-1 / self._y_true.shape[0]) * (self._y_true / self._y_pred)
