@@ -1,4 +1,3 @@
-import logging
 from typing import Optional, Type, Union
 
 import numpy as np
@@ -206,6 +205,10 @@ class Tanh(Activation):
 
 
 class Softmax(Activation):
+    def __init__(self) -> None:
+        super().__init__()
+        self.clip = Clip(1e-07, 1.0 - 1e-07)
+
     def forward(self, inputs: ARRAY_TYPE):
         """
         Performs the forward pass of the activation function.
@@ -229,7 +232,6 @@ class Softmax(Activation):
         num = backend.exp(inputs)
         denom = backend.sum(num, dim=1, keepdim=True)
         self._activation = num / denom
-        self.clip = Clip(1e-07, 1.0 - 1e-07)
         self._activation = self.clip.forward(self._activation)
         # return clipped_activation
         return self._activation
@@ -291,7 +293,7 @@ class Softmax(Activation):
         dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
-                dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
+                dA[batch_idx: batch_idx + 1, :], jac_mat[batch_idx]
             )
             dZ_arr.append(dZ.flatten())
         return backend.stack(dZ_arr)

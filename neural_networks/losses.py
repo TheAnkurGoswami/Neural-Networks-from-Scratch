@@ -2,7 +2,6 @@ from typing import Optional, Union
 
 import numpy as np
 import torch as pt
-import logging
 
 backend_module = "pt"
 backend = np if backend_module == "np" else pt
@@ -73,7 +72,7 @@ class MSELoss(Loss):
         """
         assert self._y_pred is not None
         assert self._y_true is not None
-        return (2 / self._y_pred.size(0)) * (self._y_pred - self._y_true)
+        return (2 / self._y_pred.shape[0]) * (self._y_pred - self._y_true)
 
 
 class RMSELoss(Loss):
@@ -121,7 +120,7 @@ class RMSELoss(Loss):
         assert self._y_true is not None
         assert self._loss is not None
         return (self._y_pred - self._y_true) / (
-            self._y_pred.size(0) * self._loss
+            self._y_pred.shape[0] * self._loss
         )
 
 
@@ -143,9 +142,9 @@ class CrossEntropyLoss(Loss):
         Formula for CrossEntropy loss: -Σ(y_true * log(y_pred))
 
         Args:
-            y_pred (ARRAY_TYPE): Predicted probabilities, a 2D tensor where each
-                row corresponds to the predicted probabilities for a single
-                sample.
+            y_pred (ARRAY_TYPE): Predicted probabilities, a 2D tensor where
+                each row corresponds to the predicted probabilities for a
+                single sample.
             y_true (ARRAY_TYPE): True labels, a 2D tensor where each row
                 corresponds to the one-hot encoded true labels for a single
                 sample.

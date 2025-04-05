@@ -3,7 +3,6 @@ from typing import Union
 import numpy as np
 from tensorflow import Tensor as TF_Tensor
 from torch import Tensor as PT_Tensor
-import logging
 
 # Define a type alias for various number types
 NUMBER_TYPE = Union[np.ndarray, float, int, PT_Tensor, TF_Tensor]

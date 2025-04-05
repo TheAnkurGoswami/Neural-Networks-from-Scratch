@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import numpy as np
@@ -14,8 +15,6 @@ from tests.templates import (
     get_weight_template,
 )
 from utils import check_closeness
-import logging
-import os
 
 torch.set_printoptions(precision=10)
 np.set_printoptions(precision=10)
@@ -420,28 +419,60 @@ def test_n_hidden_layer_classification(
                 zip(dense_layers, torch_outputs)
             ):
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dA: {activations[idx].shape}, Gradient: {activations[idx].grad}"
+                    "Epoch %d, Layer %d - dA: %s, Grad: %s",
+                    epoch,
+                    idx + 1,
+                    activations[idx].shape,
+                    activations[idx].grad,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dZ (Custom): {cus_layer._dZ.shape}, Values: {cus_layer._dZ}"
+                    "Epoch %d, Layer %d - dZ (Custom): %s, Values: %s",
+                    epoch,
+                    idx + 1,
+                    cus_layer._dZ.shape,
+                    cus_layer._dZ,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dZ (PyTorch): {pt_layer.shape}, Gradient: {pt_layer.grad}"
+                    "Epoch %d, Layer %d - dZ (PyTorch): %s, Gradient: %s",
+                    epoch,
+                    idx + 1,
+                    pt_layer.shape,
+                    pt_layer.grad,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dW (Custom): {cus_layer._dW.shape}, Values: {cus_layer._dW}"
+                    "Epoch %d, Layer %d - dW (Custom): %s, Values: %s",
+                    epoch,
+                    idx + 1,
+                    cus_layer._dW.shape,
+                    cus_layer._dW,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dW (PyTorch): {torch_weights_list[idx].shape}, Gradient: {torch_weights_list[idx].grad}"
+                    "Epoch %d, Layer %d - dW (PyTorch): %s, Gradient: %s",
+                    epoch,
+                    idx + 1,
+                    torch_weights_list[idx].shape,
+                    torch_weights_list[idx].grad,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dB (Custom): {cus_layer._dB.shape}, Values: {cus_layer._dB}"
+                    "Epoch %d, Layer %d - dB (Custom): %s, Values: %s",
+                    epoch,
+                    idx + 1,
+                    cus_layer._dB.shape,
+                    cus_layer._dB,
                 )
                 logging.info(
-                    f"Epoch {epoch}, Layer {idx + 1} - dB (PyTorch): {torch_biases_list[idx].shape}, Gradient: {torch_biases_list[idx].grad}"
+                    "Epoch %d, Layer %d - dB (PyTorch): %s, Gradient: %s",
+                    epoch,
+                    idx + 1,
+                    torch_biases_list[idx].shape,
+                    torch_biases_list[idx].grad,
                 )
             logging.info(
-                f"Loss at epoch {epoch}: Custom NN: {cost_nn}, TensorFlow: {cost_tf}, PyTorch: {loss_torch_fn.item()}"
+                "Loss at epoch %d: Custom NN: %s, TensorFlow: %s, PyTorch: %s",
+                epoch,
+                cost_nn,
+                cost_tf,
+                loss_torch_fn.item(),
             )
 
         # Check if the weights, biases, and costs are close across frameworks

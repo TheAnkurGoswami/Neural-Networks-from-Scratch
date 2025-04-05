@@ -3,7 +3,6 @@ from typing import Dict, Optional, Tuple, Union
 import numpy as np
 import torch as pt
 
-
 from neural_networks.activations import get_activation_fn
 from neural_networks.optimizers import Optimizer
 
@@ -39,6 +38,11 @@ class Dense:
         self._dw_history: Optional[Dict[str, ARRAY_TYPE]] = None
         self._db_history: Optional[Dict[str, ARRAY_TYPE]] = None
         self._retain_grad = retain_grad  # For debugging purpose
+
+        if self._retain_grad:
+            self._dW: Optional[ARRAY_TYPE] = None
+            self._dB: Optional[ARRAY_TYPE] = None
+            self._dZ: Optional[ARRAY_TYPE] = None
 
     def _build(self) -> Tuple[ARRAY_TYPE, ARRAY_TYPE]:
         """

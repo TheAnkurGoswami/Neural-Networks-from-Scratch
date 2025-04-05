@@ -1,8 +1,7 @@
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import torch as pt
-
 
 backend_module = "pt"
 backend = np if backend_module == "np" else pt
@@ -20,6 +19,7 @@ class Clip:
         """
         self._min_val = min_val
         self._max_val = max_val
+        self._inputs: Optional[ARRAY_TYPE] = None
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         self._inputs = inputs
@@ -27,8 +27,9 @@ class Clip:
             return backend.clamp(
                 inputs, 1e-07, 1.0 - 1e-07
             )  # Avoid log(0) issues
-        elif backend_module == "np":
+        if backend_module == "np":
             return np.clip(inputs, 1e-07, 1.0 - 1e-07)
+        raise ValueError("Unsupported backend module")
 
     def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
         """
