@@ -3,10 +3,7 @@ from typing import Optional, Union
 import numpy as np
 import torch as pt
 
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
-NUMERIC_TYPE = Union[float, int, np.number, pt.Tensor]
+from neural_networks.backend import ARRAY_TYPE, NUMERIC_TYPE, get_backend
 
 
 class Loss:
@@ -53,6 +50,7 @@ class MSELoss(Loss):
         Returns:
             ARRAY_TYPE: Computed MSE loss.
         """
+        backend, backend_module = get_backend()
         if backend_module == "pt":
             y_true = pt.tensor(y_true, dtype=pt.float32)
         elif backend_module == "np":
@@ -97,6 +95,7 @@ class RMSELoss(Loss):
         Returns:
             ARRAY_TYPE: Computed RMSE loss.
         """
+        backend, backend_module = get_backend()
         if backend_module == "pt":
             y_true = pt.tensor(y_true, dtype=pt.float32)
         elif backend_module == "np":
@@ -158,6 +157,7 @@ class CrossEntropyLoss(Loss):
         """
 
         self._y_pred = y_pred
+        backend, backend_module = get_backend()
         if backend_module == "pt":
             self._y_true = pt.tensor(y_true, dtype=pt.float32)
         elif backend_module == "np":

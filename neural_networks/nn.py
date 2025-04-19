@@ -4,11 +4,8 @@ import numpy as np
 import torch as pt
 
 from neural_networks.activations import get_activation_fn
+from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.optimizers import Optimizer
-
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.typing.NDArray, pt.Tensor]
 
 
 class Dense:
@@ -51,6 +48,7 @@ class Dense:
         Returns:
         - Tuple[ARRAY_TYPE, ARRAY_TYPE]: Initialized weights and bias.
         """
+        _, backend_module = get_backend()
         if backend_module == "pt":
             weights = pt.normal(
                 mean=0.0, std=1.0, size=(self._in_features, self._out_features)
@@ -77,6 +75,7 @@ class Dense:
         - ARRAY_TYPE: The output of the layer after applying the activation
             function. Shape: (n_inputs, self._out_features)
         """
+        backend, backend_module = get_backend()
         if backend_module == "pt":
             if isinstance(inputs, pt.Tensor):
                 self._inputs = inputs.clone().detach().requires_grad_(True)
@@ -103,6 +102,7 @@ class Dense:
                     Shape: (n_inputs, self._in_features)
         """
         assert self._inputs is not None
+        backend, backend_module = get_backend()
         dZ = self._activation.backprop(dA)
         dW = backend.matmul(self._inputs.T, dZ)
         if backend_module == "pt":

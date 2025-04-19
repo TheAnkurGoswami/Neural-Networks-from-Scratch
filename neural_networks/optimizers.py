@@ -1,11 +1,9 @@
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 import torch as pt
 
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
+from neural_networks.backend import ARRAY_TYPE, get_backend
 
 
 class Optimizer:
@@ -64,6 +62,7 @@ class SGD(Optimizer):
         """
         Initializes the history for the SGD optimizer.
         """
+        backend, _ = get_backend()
         return {"accum_grad": backend.zeros_like(parameter)}
 
     def optimize(
@@ -131,6 +130,7 @@ class RMSProp(Optimizer):
         """
         Initializes the history for the RMSProp optimizer.
         """
+        backend, _ = get_backend()
         return {"accum_sq_grad": backend.zeros_like(parameter)}
 
     def optimize(
@@ -154,6 +154,8 @@ class RMSProp(Optimizer):
         # Initialize history if it's None
         if history is None:
             history = self._initialize_history(derivative)
+
+        backend, _ = get_backend()
 
         # Update the accumulated squared gradient with the current gradient
         accum_sq_grad = self._rho * history["accum_sq_grad"] + (
@@ -216,6 +218,7 @@ class Adam(Optimizer):
         """
         Initializes the history for the Adam optimizer.
         """
+        backend, _ = get_backend()
         return {
             "first_moment_t": backend.zeros_like(parameter),
             "second_moment_t": backend.zeros_like(parameter),
@@ -249,6 +252,7 @@ class Adam(Optimizer):
         # Retrieve previous first and second moment estimates from history
         first_moment_t_prev = history["first_moment_t"]
         second_moment_t_prev = history["second_moment_t"]
+        backend, backend_module = get_backend()
 
         # Update biased first moment estimate
         first_moment_t = (
