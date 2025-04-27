@@ -1,11 +1,12 @@
 from typing import Union
 
 import numpy as np
-from tensorflow import Tensor as TF_Tensor
-from torch import Tensor as PT_Tensor
+
+import tensorflow as tf
+import torch as pt
 
 # Define a type alias for various number types
-NUMBER_TYPE = Union[np.ndarray, float, int, PT_Tensor, TF_Tensor]
+NUMBER_TYPE = Union[np.ndarray, float, int, pt.Tensor, tf.Tensor]
 
 
 def check_closeness(
@@ -57,3 +58,125 @@ def check_closeness(
 
     # Return the result of the main check
     return main_check
+
+
+
+class ScaledDotProductAttentionPytorch(pt.nn.Module):
+    """
+    PyTorch implementation of the Scaled Dot-Product Attention mechanism.
+    """
+
+    def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
+        """
+        Initialize the ScaledDotProductAttention class.
+
+        Parameters:
+        d_model (int): The dimension of the model.
+        dim_k (int): The dimension of the key.
+        dim_v (int): The dimension of the value.
+        """
+        self.d_model = d_model
+        self.dim_k = dim_k
+        self.dim_v = dim_v
+
+
+    def set_weights(self, W_query: pt.Tensor, W_key: pt.Tensor, W_value: pt.Tensor):
+        """
+        Set the weights for the attention mechanism.
+
+        Parameters:
+        W_query (torch.Tensor): The query weight matrix.
+        W_key (torch.Tensor): The key weight matrix.
+        W_value (torch.Tensor): The value weight matrix.
+        """
+        self.W_query = pt.tensor(W_query, requires_grad=True)
+        self.W_key = pt.tensor(W_key, requires_grad=True)
+        self.W_value = pt.tensor(W_value, requires_grad=True)
+
+    def forward(self, inputs):
+        """
+        Forward pass of the attention mechanism.
+
+        Parameters:
+        inputs (torch.Tensor): The input tensor.
+
+        Returns:
+        torch.Tensor: The output of the attention mechanism.
+        """
+        # Compute queries, keys, and values
+        queries = pt.matmul(inputs, self.W_query)
+        keys = pt.matmul(inputs, self.W_key)
+        values = pt.matmul(inputs, self.W_value)
+
+        # Compute attention scores
+        self.scores = pt.matmul(
+            queries, keys.transpose(-2, -1)) / (self.dim_k ** 0.5)
+        self.scores.retain_grad()
+        # print("PT Attention Scores", scores.shape, scores)
+        # Apply softmax to get attention weights
+        self.attention_weights = pt.softmax(self.scores, dim=-1)
+        self.attention_weights.retain_grad()
+        # print("PT Attention Weights", attention_weights.shape, attention_weights)
+        # Compute the output
+        output = pt.matmul(self.attention_weights, values)
+
+        return output
+
+
+class ScaledDotProductAttentionTensorflow(tf.Module):
+    """
+    TensorFlow implementation of the Scaled Dot-Product Attention mechanism.
+    """
+
+    def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
+        """
+        Initialize the ScaledDotProductAttention class.
+
+        Parameters:
+        d_model (int): The dimension of the model.
+        dim_k (int): The dimension of the key.
+        dim_v (int): The dimension of the value.
+        """
+        self.d_model = d_model
+        self.dim_k = dim_k
+        self.dim_v = dim_v
+
+    def set_weights(self, W_query, W_key, W_value):
+        """
+        Set the weights for the attention mechanism.
+
+        Parameters:
+        W_query (tf.Tensor): The query weight matrix.
+        W_key (tf.Tensor): The key weight matrix.
+        W_value (tf.Tensor): The value weight matrix.
+        """
+        self.W_query = tf.Variable(W_query)
+        self.W_key = tf.Variable(W_key)
+        self.W_value = tf.Variable(W_value)
+
+    def forward(self, inputs):
+        """
+        Forward pass of the attention mechanism.
+
+        Parameters:
+        inputs (tf.Tensor): The input tensor.
+
+        Returns:
+        tf.Tensor: The output of the attention mechanism.
+        """
+        # Compute queries, keys, and values
+        queries = tf.matmul(inputs, self.W_query)
+        keys = tf.matmul(inputs, self.W_key)
+        values = tf.matmul(inputs, self.W_value)
+
+        # Compute attention scores
+        scores = tf.matmul(
+            queries, keys, transpose_b=True) / (self.dim_k ** 0.5)
+
+        # Apply softmax to get attention weights
+        attention_weights = tf.nn.softmax(scores, axis=-1)
+
+        # Compute the output
+        output = tf.matmul(attention_weights, values)
+
+        return output

@@ -97,7 +97,10 @@ class RMSELoss(Loss):
         """
         backend, backend_module = get_backend()
         if backend_module == "pt":
-            y_true = pt.tensor(y_true, dtype=pt.float32)
+            if isinstance(y_true, pt.Tensor):
+                y_true = y_true.float()
+            else:
+                y_true = pt.tensor(y_true, dtype=pt.float32)
         elif backend_module == "np":
             y_true = np.array(y_true, dtype=np.float32)
         self._y_true = y_true

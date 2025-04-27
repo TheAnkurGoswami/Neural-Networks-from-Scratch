@@ -15,7 +15,7 @@ from tests.templates import (
     get_loss_template,
     get_weight_template,
 )
-from utils import check_closeness
+from utils import check_closeness, ScaledDotProductAttentionPytorch, ScaledDotProductAttentionTensorflow
 
 torch.set_printoptions(precision=10)
 np.set_printoptions(precision=10)
@@ -24,93 +24,125 @@ DEBUG = True
 
 
 
-def test_self_attention():
+def test_scaled_dot_product_attention():
     d_model = 3
     seq_len = 5
     batch_size = 1
-    dim_kqv = 4
+    dim_kqv = d_model
+    np.random.seed(100)
+    torch.manual_seed(100)
+    epochs = 1
+    learning_rate = 0.001
 
     x = np.random.randint(low=0, high=10, size=(batch_size, seq_len, d_model)).astype(np.float32)
+    y = np.random.randn(batch_size, seq_len, d_model).astype(np.float32)
+
     # Convert input to PyTorch tensor
-    x_torch = torch.tensor(x, dtype=torch.float32)
-    attention = ScaledDotProductAttention(d_model=d_model, dim_k=dim_kqv, dim_q=dim_kqv, dim_v=dim_kqv)
-
-    attention.query_w, attention.key_w, attention.value_w
-
-    output = attention.forward(x_torch.clone().detach())
-    print("Output (Custom):", output)
-
-
-    #  PYTORCH's self attention
-
-    mha = torch.nn.MultiheadAttention(num_heads=1, embed_dim=d_model, batch_first=True)
-    print(attention.query_w.shape)
-    # Stack them vertically: QKV
-    in_proj_weight = torch.cat([
-        attention.query_w.clone().detach().requires_grad_(True),
-        attention.key_w.clone().detach().requires_grad_(True),
-        attention.value_w.clone().detach().requires_grad_(True)
-    ], dim=0)  # [3*embed_dim, embed_dim]
-    mha.in_proj_weight.data = in_proj_weight
-    # mha.q_proj_weight.data = attention.query_w.clone().detach().requires_grad_(True)
-    # mha.k_proj_weight.data = attention.key_w.clone().detach().requires_grad_(True)
-    # mha.v_proj_weight.data = attention.value_w.clone().detach().requires_grad_(True)
-
-    output = mha.forward(x_torch, x_torch, x_torch)
-    print("Output (PT MHA):", output)
-
-    # Convert weights to PyTorch tensors
-    query_w_torch = attention.query_w.clone().detach().requires_grad_(True)
-    key_w_torch = attention.key_w.clone().detach().requires_grad_(True)
-    value_w_torch = attention.value_w.clone().detach().requires_grad_(True)
-
-    # Compute queries, keys, and values
-    queries = torch.matmul(x_torch, query_w_torch)
-    keys = torch.matmul(x_torch, key_w_torch)
-    values = torch.matmul(x_torch, value_w_torch)
-
-    # Compute attention scores
-    scores = torch.matmul(queries, keys.transpose(-2, -1)) / (dim_kqv ** 0.5)
-
-    # Apply softmax to get attention weights
-    attention_weights = torch.nn.functional.softmax(scores, dim=-1)
-
-    # Compute the output
-    output = torch.matmul(attention_weights, values)
-
-    if DEBUG:
-        # print("Queries (PT):", queries)
-        # print("Keys (PT):", keys)
-        # print("Values (PT):", values)
-        print("Scores (PT):", scores)
-        # print("Attention Weights (PT):", attention_weights)
-        print("Output (PT):", output)
-
-    # TensorFlow's self-attention
+    x_torch = torch.tensor(x.astype(np.float32))
+    y_torch = torch.tensor(y.astype(np.float32))
     # Convert input to TensorFlow tensor
-    x_tf = tf.convert_to_tensor(x, dtype=tf.float32)
+    x_tf = tf.constant(x.astype(np.float32))
+    y_tf = tf.constant(y.astype(np.float32))
 
-    # Compute queries, keys, and values
-    queries_tf = tf.matmul(x_tf, tf.convert_to_tensor(attention.query_w, dtype=tf.float32))
-    keys_tf = tf.matmul(x_tf, tf.convert_to_tensor(attention.key_w, dtype=tf.float32))
-    values_tf = tf.matmul(x_tf, tf.convert_to_tensor(attention.value_w, dtype=tf.float32))
 
-    # Compute attention scores
-    scores_tf = tf.matmul(queries_tf, keys_tf, transpose_b=True) / tf.sqrt(tf.cast(dim_kqv, tf.float32))
 
-    # Apply softmax to get attention weights
-    attention_weights_tf = tf.nn.softmax(scores_tf, axis=-1)
 
-    # Compute the output
-    output_tf = tf.matmul(attention_weights_tf, values_tf)
-    # torch._scaled_dot_product_attention_math()
-    if DEBUG:
-        # tf.print("Queries (TF):", queries_tf)
-        # tf.print("Keys (TF):", keys_tf)
-        # tf.print("Values (TF):", values_tf)
-        tf.print("Scores (TF):", scores_tf)
-        # tf.print("Attention Weights (TF):", attention_weights_tf)
-        tf.print("Output (TF):", output_tf)
+    sdpa_cus = ScaledDotProductAttention(d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
+
+    sdpa_pt = ScaledDotProductAttentionPytorch(
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
+    sdpa_pt.set_weights(sdpa_cus.weights["query"].clone().detach().numpy(),
+                        sdpa_cus.weights["key"].clone().detach().numpy(),
+                        sdpa_cus.weights["value"].clone().detach().numpy())
+
+    sdpa_tf = ScaledDotProductAttentionTensorflow(
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
+    sdpa_tf.set_weights(sdpa_cus.weights["query"].clone().detach().numpy(),
+                        sdpa_cus.weights["key"].clone().detach().numpy(),
+                        sdpa_cus.weights["value"].clone().detach().numpy())
+
+    # Initialize loss functions and optimizers for each framework
+    loss = RMSELoss()
+    loss_torch = torch.nn.MSELoss()
+    loss_tf = tf.keras.losses.MeanSquaredError()
+
+    optimizer = get_optimizer("adam")(learning_rate=learning_rate)
+    optimizer_tf = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    optimizer_torch = torch.optim.Adam(
+        params=[sdpa_pt.W_key, sdpa_pt.W_query, sdpa_pt.W_value],
+        lr=learning_rate
+    )
+
+    output_cus = sdpa_cus.forward(x_torch.clone().detach())
+    cost_cus = loss.forward(output_cus, y_torch)
+
+    output_pt = sdpa_pt.forward(x_torch)
+    cost_pt = torch.sqrt(loss_torch(output_pt, y_torch))
+
+    with tf.GradientTape() as tape:
+        output_tf = sdpa_tf.forward(x_tf)
+        cost_tf = tf.sqrt(loss_tf(output_tf, y_tf))
+
+    # Backward pass and optimization
+    dL = loss.backprop()
+    # print(dL)
+    optimizer.set_cur_epoch(epochs + 1)
+    sdpa_cus.backprop(dL, optimizer)
+
+    cost_pt.backward()
+    optimizer_torch.step()
+    print("PT Gradient for attn scores", sdpa_pt.scores.grad)
+    print("PT Gradient for attn weights", sdpa_pt.attention_weights.grad)
+    for param in [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value]:
+        print(f"PT Gradient for {param.grad}")
+    optimizer_torch.zero_grad()
+
+    trainable_variables = [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value]
+    grads = tape.gradient(
+        cost_tf, trainable_variables)
+    # if DEBUG:
+    #     print("Grads (TF):", grads)
+    optimizer_tf.apply_gradients(
+        zip(grads, trainable_variables))
+
+    # print("Loss (Custom):", cost_cus)
+    # print("Loss (PT):", cost_pt.item())
+    # print("Loss (TF):", cost_tf.numpy())
+    assert check_closeness(
+        cost_cus.detach().numpy(), cost_tf
+    ), f"{get_loss_template('tf')}"
+    assert check_closeness(
+        cost_cus.detach().numpy(), cost_pt.item()
+    ), f"{get_loss_template('pt')}"
+
+
+    # Check closeness of outputs
+    assert check_closeness(
+        output_cus.detach().numpy(), output_tf.numpy()
+    ), f"{get_weight_template('tf')}"
+    assert check_closeness(
+        output_cus.detach().numpy(), output_pt.detach().numpy()
+    ), f"{get_weight_template('pt')}"
+
+    # Check closeness of weights
+    for key, W_tf, W_pt in zip(
+        ["query", "key", "value"],
+        [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value],
+        [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
+    ):
+        # if key in ["query", "key"]:
+        #     continue
+        # print(
+        #     sdpa_cus.weights[key].detach().numpy(),
+        #     W_tf.numpy(),
+        #     W_pt.detach().numpy(),
+        #     sep="\n")
+        assert check_closeness(
+            sdpa_cus.weights[key].detach().numpy(), W_tf.numpy()
+        ), f"{get_weight_template('tf')}"
+        assert check_closeness(
+            sdpa_cus.weights[key].detach().numpy(), W_pt.detach().numpy()
+        ), f"{get_weight_template('pt')}"
+
     assert False
-    return output
 
