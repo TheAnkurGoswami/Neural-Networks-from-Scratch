@@ -21,10 +21,10 @@ class ScaledDotProductAttention:
             self.dim_k: ARRAY_TYPE = np.array(dim_k, dtype=np.int32)
             self.dim_v: ARRAY_TYPE = np.array(dim_v, dtype=np.int32)
         self.parameter_dims: List[int] = [d_model, dim_k, dim_v]
-        self._build()
-
         # For moving average based optimizers
         self._dW_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
+        self._build()
+
 
     def _build(self):
         """
@@ -83,16 +83,19 @@ class ScaledDotProductAttention:
         # by 1/√dim_k
         #  - Attention is all you need
         attention_scores /= backend.sqrt(self.dim_k)
+        # print("Cust Attention Scores", attention_scores.shape, attention_scores)
         # attention_scores Shape : (batch_size, seq_len, seq_len)
 
         # Apply softmax to get attention weights
         # print("Attention bf softmax", attention_scores.shape, attention_scores)
         batch_dim, seq_len_dim, _ = attention_scores.shape
         attention_scores = attention_scores.reshape((batch_dim*seq_len_dim, seq_len_dim))
-        self.softmax = Softmax()
+        self.softmax = Softmax(do_clip=False)
+        # We do not clipping here as we are not feeding the softmax output to
+        # log function. No need to clip the values to get stable gradients.
         softmax_attn = self.softmax.forward(attention_scores)
         self.softmax_attn = softmax_attn.reshape((batch_dim, seq_len_dim, seq_len_dim))
-
+        # print("Cust Softmax attn", self.softmax_attn.shape, self.softmax_attn)
         self.attention = backend.matmul(
             self.softmax_attn, self.projections["value"])
         # Shape of attention: (batch_size, seq_len, dim_v)
@@ -139,11 +142,12 @@ class ScaledDotProductAttention:
         dW_v = backend.matmul(
             self.inputs.transpose(-1, -2), dV
         )
-
+        dW_v = backend.sum(dW_v, axis=0)
+        # print("dW_v shape", dW_v.shape, dW_v)
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
         )
-
+        # print("d_softmax_attention shape", d_softmax_attention.shape, d_softmax_attention)
         batch_size, seq_len, _ = d_softmax_attention.shape
         d_softmax_attention = d_softmax_attention.reshape(
             (batch_size*seq_len, seq_len))
@@ -152,26 +156,32 @@ class ScaledDotProductAttention:
         d_attention_scores = d_attention_scores.reshape(
             (batch_size, seq_len, seq_len)
         )
-
+        # print("d_attention_scores shape", d_attention_scores.shape, d_attention_scores)
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
         dW_q = backend.matmul(
             self.inputs.transpose(-1, -2), dQ
         )
+        dW_q = backend.sum(dW_q, axis=0)
+        # print("dW_q shape", dW_q.shape, dW_q)
         dK = backend.matmul(
             d_attention_scores.transpose(-1, -2), self.projections["query"])
         dW_k = backend.matmul(
             self.inputs.transpose(-1, -2), dK
         )
-
+        dW_k = backend.sum(dW_k, axis=0)
+        # print("dW_k shape", dW_k.shape, dW_k)
         # gradient w.r.t. X from each branch:
         dX_from_Q = backend.matmul(dQ, self.weights["query"].T)
         dX_from_K = backend.matmul(dK, self.weights["key"].T)
         dX_from_V = backend.matmul(dV, self.weights["value"].T)
-
+        # for dW in [dW_q, dW_k, dW_v]:
+        #     print("dW shape", dW.shape, dW)
         for param, dW in zip(self.parameters, [dW_q, dW_k, dW_v]):
             dW_change, self._dW_history[param] = optimizer.optimize(
                 self._dW_history[param], dW)
             # Parametric updates
+            # print("dW_change shape", dW_change.shape, dW_change)
+            # print("weights shape", self.weights[param].shape, self.weights[param])
             self.weights[param] -= dW_change
 
         # total gradient into X is the element‐wise sum:
