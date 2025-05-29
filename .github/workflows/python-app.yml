@@ -1,8 +1,6 @@
 name: Python Checks
 
-on:
-  push:
-    branches: ['*']
+on: [ push, pull_request ]
 
 jobs:
   lints:
@@ -29,7 +27,13 @@ jobs:
       run: |
         make install
     
-    - uses: astral-sh/ruff-action@v3
+    - name: Install Ruff
+      run: |
+        pip install ruff
+    # Update output format to enable automatic inline annotations.
+    - name: Run Ruff
+      run: |
+        ruff check --output-format=github .
 
     - name: Lint Code (use uppercase TODO, XXX, FIXME, NOTE and explain nopep8)
       run: |
