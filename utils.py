@@ -104,13 +104,13 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         torch.Tensor: The output of the attention mechanism.
         """
         # Compute queries, keys, and values
-        queries = pt.matmul(inputs, self.W_query)
-        keys = pt.matmul(inputs, self.W_key)
-        values = pt.matmul(inputs, self.W_value)
+        self.queries = pt.matmul(inputs, self.W_query)
+        self.keys = pt.matmul(inputs, self.W_key)
+        self.values = pt.matmul(inputs, self.W_value)
 
         # Compute attention scores
         self.scores = pt.matmul(
-            queries, keys.transpose(-2, -1)) / (self.dim_k ** 0.5)
+            self.queries, self.keys.transpose(-2, -1)) / (self.dim_k ** 0.5)
         self.scores.retain_grad()
         # print("PT Attention Scores", scores.shape, scores)
         # Apply softmax to get attention weights
@@ -118,9 +118,9 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.attention_weights.retain_grad()
         # print("PT Attention Weights", attention_weights.shape, attention_weights)
         # Compute the output
-        output = pt.matmul(self.attention_weights, values)
-
-        return output
+        self.output = pt.matmul(self.attention_weights, self.values)
+        self.output.retain_grad()
+        return self.output
 
 
 class ScaledDotProductAttentionTensorflow(tf.Module):
