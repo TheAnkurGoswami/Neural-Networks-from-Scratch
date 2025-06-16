@@ -53,8 +53,10 @@ class MSELoss(Loss):
         backend, backend_module = get_backend()
         if backend_module == "pt":
             y_true = pt.tensor(y_true, dtype=pt.float32)
+            self._size = y_true.numel()
         elif backend_module == "np":
             y_true = np.array(y_true, dtype=np.float32)
+            self._size = y_true.size
         self._y_true = y_true
         self._y_pred = y_pred
         return backend.mean((y_pred - y_true) ** 2)
@@ -71,7 +73,16 @@ class MSELoss(Loss):
         """
         assert self._y_pred is not None
         assert self._y_true is not None
-        return (2 / self._y_pred.shape[0]) * (self._y_pred - self._y_true)
+        return (2 / self._size) * (self._y_pred - self._y_true)
+        """
+        Why _size & not use the batch dimension i.e., _y_pred.shape[0]?
+        In regression tasks, we often have a single output per sample, so we
+        could use the batch dimension to compute the loss.
+        However, in cases where we have multiple outputs per sample (e.g., in
+        multi-output regression), using the total number of elements (_size)
+        ensures that the loss is averaged correctly across all outputs.
+        """
+
 
 
 class RMSELoss(Loss):
@@ -101,8 +112,10 @@ class RMSELoss(Loss):
                 y_true = y_true.float()
             else:
                 y_true = pt.tensor(y_true, dtype=pt.float32)
+            self._size = y_true.numel()
         elif backend_module == "np":
             y_true = np.array(y_true, dtype=np.float32)
+            self._size = y_true.size
         self._y_true = y_true
         self._y_pred = y_pred
         self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
@@ -123,7 +136,7 @@ class RMSELoss(Loss):
         assert self._y_true is not None
         assert self._loss is not None
         return (self._y_pred - self._y_true) / (
-            self._y_pred.shape[0] * self._loss
+            self._size * self._loss
         )
 
 
