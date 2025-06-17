@@ -44,9 +44,6 @@ def test_scaled_dot_product_attention():
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
 
-
-
-
     sdpa_cus = ScaledDotProductAttention(d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
 
     sdpa_pt = ScaledDotProductAttentionPytorch(
@@ -85,16 +82,11 @@ def test_scaled_dot_product_attention():
 
     # Backward pass and optimization
     dL = loss.backprop()
-    # print(dL)
-    optimizer.set_cur_epoch(epochs + 1)
+    optimizer.set_cur_epoch(1)
     sdpa_cus.backprop(dL, optimizer)
 
     cost_pt.backward()
     optimizer_torch.step()
-    print("PT Gradient for attn scores", sdpa_pt.scores.grad)
-    print("PT Gradient for attn weights", sdpa_pt.attention_weights.grad)
-    for param in [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value]:
-        print(f"PT Gradient for {param.grad}")
     optimizer_torch.zero_grad()
 
     trainable_variables = [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value]
@@ -115,7 +107,6 @@ def test_scaled_dot_product_attention():
         cost_cus.detach().numpy(), cost_pt.item()
     ), f"{get_loss_template('pt')}"
 
-
     # Check closeness of outputs
     assert check_closeness(
         output_cus.detach().numpy(), output_tf.numpy()
@@ -130,19 +121,9 @@ def test_scaled_dot_product_attention():
         [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value],
         [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
     ):
-        # if key in ["query", "key"]:
-        #     continue
-        # print(
-        #     sdpa_cus.weights[key].detach().numpy(),
-        #     W_tf.numpy(),
-        #     W_pt.detach().numpy(),
-        #     sep="\n")
         assert check_closeness(
             sdpa_cus.weights[key].detach().numpy(), W_tf.numpy()
         ), f"{get_weight_template('tf')}"
         assert check_closeness(
             sdpa_cus.weights[key].detach().numpy(), W_pt.detach().numpy()
         ), f"{get_weight_template('pt')}"
-
-    assert False
-

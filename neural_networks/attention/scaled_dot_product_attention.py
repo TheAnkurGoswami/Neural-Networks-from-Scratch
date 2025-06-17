@@ -40,7 +40,7 @@ class ScaledDotProductAttention:
                 self.weights[param] = np.random.normal(
                     loc=0.0,
                     scale=1.0,
-                    size=(self.d_model, self.d_model),
+                    size=(self.d_model, dim),
                 ).astype(np.float32)
 
             self._dW_history[param] = None
@@ -143,7 +143,6 @@ class ScaledDotProductAttention:
             self.inputs.transpose(-1, -2), dV
         )
         dW_v = backend.sum(dW_v, axis=0)
-        # print("dW_v shape", dW_v.shape, dW_v)
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
         )
@@ -156,26 +155,26 @@ class ScaledDotProductAttention:
         d_attention_scores = d_attention_scores.reshape(
             (batch_size, seq_len, seq_len)
         )
+        d_attention_scores /= backend.sqrt(self.dim_k)
         # print("d_attention_scores shape", d_attention_scores.shape, d_attention_scores)
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
         dW_q = backend.matmul(
             self.inputs.transpose(-1, -2), dQ
         )
         dW_q = backend.sum(dW_q, axis=0)
-        # print("dW_q shape", dW_q.shape, dW_q)
         dK = backend.matmul(
             d_attention_scores.transpose(-1, -2), self.projections["query"])
         dW_k = backend.matmul(
             self.inputs.transpose(-1, -2), dK
         )
         dW_k = backend.sum(dW_k, axis=0)
-        # print("dW_k shape", dW_k.shape, dW_k)
         # gradient w.r.t. X from each branch:
         dX_from_Q = backend.matmul(dQ, self.weights["query"].T)
         dX_from_K = backend.matmul(dK, self.weights["key"].T)
         dX_from_V = backend.matmul(dV, self.weights["value"].T)
-        # for dW in [dW_q, dW_k, dW_v]:
-        #     print("dW shape", dW.shape, dW)
+        # print("dW_q shape", dW_q.shape, dW_q)
+        # print("dW_k shape", dW_k.shape, dW_k)
+        # print("dW_v shape", dW_v.shape, dW_v)
         for param, dW in zip(self.parameters, [dW_q, dW_k, dW_v]):
             dW_change, self._dW_history[param] = optimizer.optimize(
                 self._dW_history[param], dW)

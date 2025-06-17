@@ -37,7 +37,6 @@ def check_closeness(
     # # Reverse clip values of 'a' if they are of the order of e-07 or lower
     a = np.where(np.abs(a) > clip_const, a, clip_const)
     b = np.where(np.abs(b) > clip_const, b, clip_const)
-    # print(a, b)
     # Check if the absolute difference between arrays is within the tolerance
     other_check = np.abs(a - b) <= tolerance
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -51,7 +50,6 @@ def check_closeness(
         )
         # Check if the average percentage difference is within 0.001%
         precent_check = percent_diff <= 0.001
-
     if additional_checks:
         # Return True if any of the checks pass
         return bool(main_check or np.all(other_check) or precent_check)
@@ -178,5 +176,4 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
 
         # Compute the output
         output = tf.matmul(attention_weights, values)
-
         return output
