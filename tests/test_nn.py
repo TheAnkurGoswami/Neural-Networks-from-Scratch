@@ -73,7 +73,9 @@ def test_no_hidden_layer_simple_nn() -> None:
             cost_tf = loss_fn(y_hat, y_tf)
         trainable_variables = [w_tf, b_tf]
         grads = tape.gradient(cost_tf, trainable_variables)
-        optimizer_tf.apply_gradients(zip(grads, trainable_variables))
+        optimizer_tf.apply_gradients(
+            zip(grads, trainable_variables, strict=False)
+        )
 
         # Train the PyTorch neural network
         optimizer_torch.zero_grad()
@@ -205,7 +207,9 @@ def test_n_hidden_layer_simple_nn(
             cost_tf = tf.sqrt(loss_tf(output, y_tf))
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        optimizer_tf.apply_gradients(zip(grads, trainable_variables))
+        optimizer_tf.apply_gradients(
+            zip(grads, trainable_variables, strict=False)
+        )
 
         # Train the PyTorch neural network
         feed_in = x_torch
@@ -376,7 +380,9 @@ def test_n_hidden_layer_classification(
             cost_tf = loss_tf(y_tf, output)
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        optimizer_tf.apply_gradients(zip(grads, trainable_variables))
+        optimizer_tf.apply_gradients(
+            zip(grads, trainable_variables, strict=False)
+        )
 
         # Train the PyTorch neural network
         feed_in = x_torch
@@ -416,7 +422,7 @@ def test_n_hidden_layer_classification(
         if DEBUG:
             # Log the gradients for debugging
             for idx, (cus_layer, pt_layer) in enumerate(
-                zip(dense_layers, torch_outputs)
+                zip(dense_layers, torch_outputs, strict=False)
             ):
                 logging.info(
                     "Epoch %d, Layer %d - dA: %s, Grad: %s",

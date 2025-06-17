@@ -293,7 +293,7 @@ class Softmax(Activation):
         dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
-                dA[batch_idx: batch_idx + 1, :], jac_mat[batch_idx]
+                dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
             )
             dZ_arr.append(dZ.flatten())
         return backend.stack(dZ_arr)
