@@ -261,8 +261,27 @@ class Adam(Optimizer):
         # Update biased second raw moment estimate
         second_moment_t = self._beta2 * second_moment_t_prev + (
             1 - self._beta2
-        ) * backend.square(derivative)
+        ) * derivative * derivative
+        """
+        Instead of using derivative * derivative, we could have used
+        backend.square(derivative), which is essentially the same.
+        However, there could be three ways of doing it:
+            a. (1 - beta2) * backend.square(derivative)
+            c. (1 - beta2) * (derivative * derivative)
+            b. (1 - beta2) * derivative * derivative
 
+        In a. & b., we are squaring the derivative first and then
+        multiplying it by (1 - beta2). In b., we are multiplying
+        (1 - beta2) with the derivative first and then again multiplying
+        it with the derivative.
+
+        They all should yield the same result, but since we are using floating
+        point arithmetic, there could be slight differences in the results.
+        For consistency(with frameworks), we are using the second approach (c)
+        here.
+
+        - May use same for RMSProp later.
+        """
         # Compute bias-corrected first moment estimate
         if backend_module == "pt":
             first_mom_corr = 1 - pt.pow(pt.tensor(self._beta1), epoch)
