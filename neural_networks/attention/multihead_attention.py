@@ -2,9 +2,12 @@ from typing import Optional
 
 import numpy as np
 import torch as pt
-from neural_networks.activations import Softmax
-from neural_networks.attention.scaled_dot_product_attention import ScaledDotProductAttention
+
+from neural_networks.attention.scaled_dot_product_attention import (
+    ScaledDotProductAttention,
+)
 from neural_networks.backend import ARRAY_TYPE, get_backend
+
 
 class MultiHeadAttention:
     def __init__(
@@ -34,14 +37,16 @@ class MultiHeadAttention:
                 d_model=self.d_model,
                 dim_q=self.dim_q,
                 dim_k=self.dim_k,
-                dim_v=self.dim_v
+                dim_v=self.dim_v,
             )
             for _ in range(self.num_heads)
         ]
         _, backend_module = get_backend()
         if backend_module == "pt":
             self.output_w = pt.normal(
-                mean=0.0, std=1.0, size=(self.num_heads * self.dim_v, self.d_model)
+                mean=0.0,
+                std=1.0,
+                size=(self.num_heads * self.dim_v, self.d_model),
             )
         elif backend_module == "np":
             self.output_w = np.random.normal(

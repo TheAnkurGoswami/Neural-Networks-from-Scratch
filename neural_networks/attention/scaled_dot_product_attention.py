@@ -2,9 +2,11 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import torch as pt
+
 from neural_networks.activations import Softmax
 from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.optimizers import Optimizer
+
 
 class ScaledDotProductAttention:
     def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
@@ -25,13 +27,12 @@ class ScaledDotProductAttention:
         self._dW_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
         self._build()
 
-
     def _build(self):
         """
         Initializes the weights for the self-attention mechanism.
         """
         _, backend_module = get_backend()
-        for param, dim in zip(self.parameters, self.parameter_dims):
+        for param, dim in zip(self.parameters, self.parameter_dims, strict=False):
             if backend_module == "pt":
                 self.weights[param] = pt.normal(
                     mean=0.0, std=1.0, size=(self.d_model, dim)
@@ -76,7 +77,8 @@ class ScaledDotProductAttention:
         #  K.transpose(-1, -2) Shape : (batch_size, dim_k, seq_len)
         attention_scores = backend.matmul(
             self.projections["query"],
-            self.projections["key"].transpose(-1, -2))
+            self.projections["key"].transpose(-1, -2),
+        )
         # For large values of dim_k, the dot products grow large in magnitude,
         # pushing the softmax function into regions where it has extremely
         # small gradients. To counteract this effect, we scale the dot products
@@ -89,15 +91,20 @@ class ScaledDotProductAttention:
         # Apply softmax to get attention weights
         # print("Attention bf softmax", attention_scores.shape, attention_scores)
         batch_dim, seq_len_dim, _ = attention_scores.shape
-        attention_scores = attention_scores.reshape((batch_dim*seq_len_dim, seq_len_dim))
+        attention_scores = attention_scores.reshape(
+            (batch_dim * seq_len_dim, seq_len_dim)
+        )
         self.softmax = Softmax(do_clip=False)
         # We do not clipping here as we are not feeding the softmax output to
         # log function. No need to clip the values to get stable gradients.
         softmax_attn = self.softmax.forward(attention_scores)
-        self.softmax_attn = softmax_attn.reshape((batch_dim, seq_len_dim, seq_len_dim))
+        self.softmax_attn = softmax_attn.reshape(
+            (batch_dim, seq_len_dim, seq_len_dim)
+        )
         # print("Cust Softmax attn", self.softmax_attn.shape, self.softmax_attn)
         self.attention = backend.matmul(
-            self.softmax_attn, self.projections["value"])
+            self.softmax_attn, self.projections["value"]
+        )
         # Shape of attention: (batch_size, seq_len, dim_v)
         return self.attention
 
@@ -107,9 +114,7 @@ class ScaledDotProductAttention:
         """
         # dA Shape: (batch_size, seq_len, dim_v)
         backend, _ = get_backend()
-        dV = backend.matmul(
-            self.softmax_attn.transpose(-1, -2), dA
-        )
+        dV = backend.matmul(self.softmax_attn.transpose(-1, -2), dA)
         """
         Why transpose(softmax_attn) * dA & not dA * softmax_attn or
         softmax_attn * dA?
@@ -139,9 +144,7 @@ class ScaledDotProductAttention:
         the attention scores with respect to the input.
         """
 
-        dW_v = backend.matmul(
-            self.inputs.transpose(-1, -2), dV
-        )
+        dW_v = backend.matmul(self.inputs.transpose(-1, -2), dV)
         dW_v = backend.sum(dW_v, axis=0)
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
@@ -149,7 +152,8 @@ class ScaledDotProductAttention:
         # print("d_softmax_attention shape", d_softmax_attention.shape, d_softmax_attention)
         batch_size, seq_len, _ = d_softmax_attention.shape
         d_softmax_attention = d_softmax_attention.reshape(
-            (batch_size*seq_len, seq_len))
+            (batch_size * seq_len, seq_len)
+        )
 
         d_attention_scores = self.softmax.backprop(d_softmax_attention)
         d_attention_scores = d_attention_scores.reshape(
@@ -158,15 +162,12 @@ class ScaledDotProductAttention:
         d_attention_scores /= backend.sqrt(self.dim_k)
         # print("d_attention_scores shape", d_attention_scores.shape, d_attention_scores)
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
-        dW_q = backend.matmul(
-            self.inputs.transpose(-1, -2), dQ
-        )
+        dW_q = backend.matmul(self.inputs.transpose(-1, -2), dQ)
         dW_q = backend.sum(dW_q, axis=0)
         dK = backend.matmul(
-            d_attention_scores.transpose(-1, -2), self.projections["query"])
-        dW_k = backend.matmul(
-            self.inputs.transpose(-1, -2), dK
+            d_attention_scores.transpose(-1, -2), self.projections["query"]
         )
+        dW_k = backend.matmul(self.inputs.transpose(-1, -2), dK)
         dW_k = backend.sum(dW_k, axis=0)
         # gradient w.r.t. X from each branch:
         dX_from_Q = backend.matmul(dQ, self.weights["query"].T)
@@ -175,9 +176,10 @@ class ScaledDotProductAttention:
         # print("dW_q shape", dW_q.shape, dW_q)
         # print("dW_k shape", dW_k.shape, dW_k)
         # print("dW_v shape", dW_v.shape, dW_v)
-        for param, dW in zip(self.parameters, [dW_q, dW_k, dW_v]):
+        for param, dW in zip(self.parameters, [dW_q, dW_k, dW_v], strict=False):
             dW_change, self._dW_history[param] = optimizer.optimize(
-                self._dW_history[param], dW)
+                self._dW_history[param], dW
+            )
             # Parametric updates
             # print("dW_change shape", dW_change.shape, dW_change)
             # print("weights shape", self.weights[param].shape, self.weights[param])

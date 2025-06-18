@@ -1,27 +1,27 @@
-import logging
-from typing import List
 
 import numpy as np
-import pytest
 import tensorflow as tf
 import torch
 
-from neural_networks.attention.scaled_dot_product_attention import ScaledDotProductAttention
-from neural_networks.losses import CrossEntropyLoss, MSELoss, RMSELoss
-from neural_networks.nn import Dense
+from neural_networks.attention.scaled_dot_product_attention import (
+    ScaledDotProductAttention,
+)
+from neural_networks.losses import RMSELoss
 from neural_networks.optimizers import get_optimizer
 from tests.templates import (
-    get_bias_template,
     get_loss_template,
     get_weight_template,
 )
-from utils import check_closeness, ScaledDotProductAttentionPytorch, ScaledDotProductAttentionTensorflow
+from utils import (
+    ScaledDotProductAttentionPytorch,
+    ScaledDotProductAttentionTensorflow,
+    check_closeness,
+)
 
 torch.set_printoptions(precision=10)
 np.set_printoptions(precision=10)
 tf.keras.backend.set_floatx("float32")
 DEBUG = True
-
 
 
 def test_scaled_dot_product_attention():
@@ -34,7 +34,9 @@ def test_scaled_dot_product_attention():
     epochs = 1
     learning_rate = 0.001
 
-    x = np.random.randint(low=0, high=10, size=(batch_size, seq_len, d_model)).astype(np.float32)
+    x = np.random.randint(
+        low=0, high=10, size=(batch_size, seq_len, d_model)
+    ).astype(np.float32)
     y = np.random.randn(batch_size, seq_len, d_model).astype(np.float32)
 
     # Convert input to PyTorch tensor
@@ -44,19 +46,27 @@ def test_scaled_dot_product_attention():
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
 
-    sdpa_cus = ScaledDotProductAttention(d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
+    sdpa_cus = ScaledDotProductAttention(
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv
+    )
 
     sdpa_pt = ScaledDotProductAttentionPytorch(
-        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
-    sdpa_pt.set_weights(sdpa_cus.weights["query"].clone().detach().numpy(),
-                        sdpa_cus.weights["key"].clone().detach().numpy(),
-                        sdpa_cus.weights["value"].clone().detach().numpy())
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv
+    )
+    sdpa_pt.set_weights(
+        sdpa_cus.weights["query"].clone().detach().numpy(),
+        sdpa_cus.weights["key"].clone().detach().numpy(),
+        sdpa_cus.weights["value"].clone().detach().numpy(),
+    )
 
     sdpa_tf = ScaledDotProductAttentionTensorflow(
-        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv)
-    sdpa_tf.set_weights(sdpa_cus.weights["query"].clone().detach().numpy(),
-                        sdpa_cus.weights["key"].clone().detach().numpy(),
-                        sdpa_cus.weights["value"].clone().detach().numpy())
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv
+    )
+    sdpa_tf.set_weights(
+        sdpa_cus.weights["query"].clone().detach().numpy(),
+        sdpa_cus.weights["key"].clone().detach().numpy(),
+        sdpa_cus.weights["value"].clone().detach().numpy(),
+    )
 
     # Initialize loss functions and optimizers for each framework
     loss = RMSELoss()
@@ -67,7 +77,7 @@ def test_scaled_dot_product_attention():
     optimizer_tf = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     optimizer_torch = torch.optim.Adam(
         params=[sdpa_pt.W_key, sdpa_pt.W_query, sdpa_pt.W_value],
-        lr=learning_rate
+        lr=learning_rate,
     )
 
     output_cus = sdpa_cus.forward(x_torch.clone().detach())
@@ -90,12 +100,10 @@ def test_scaled_dot_product_attention():
     optimizer_torch.zero_grad()
 
     trainable_variables = [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value]
-    grads = tape.gradient(
-        cost_tf, trainable_variables)
+    grads = tape.gradient(cost_tf, trainable_variables)
     # if DEBUG:
     #     print("Grads (TF):", grads)
-    optimizer_tf.apply_gradients(
-        zip(grads, trainable_variables))
+    optimizer_tf.apply_gradients(zip(grads, trainable_variables, strict=False))
 
     # print("Loss (Custom):", cost_cus)
     # print("Loss (PT):", cost_pt.item())
@@ -119,7 +127,7 @@ def test_scaled_dot_product_attention():
     for key, W_tf, W_pt in zip(
         ["query", "key", "value"],
         [sdpa_tf.W_query, sdpa_tf.W_key, sdpa_tf.W_value],
-        [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
+        [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value], strict=False,
     ):
         assert check_closeness(
             sdpa_cus.weights[key].detach().numpy(), W_tf.numpy()

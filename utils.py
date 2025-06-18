@@ -1,7 +1,6 @@
 from typing import Union
 
 import numpy as np
-
 import tensorflow as tf
 import torch as pt
 
@@ -58,7 +57,6 @@ def check_closeness(
     return main_check
 
 
-
 class ScaledDotProductAttentionPytorch(pt.nn.Module):
     """
     PyTorch implementation of the Scaled Dot-Product Attention mechanism.
@@ -77,8 +75,9 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.dim_k = dim_k
         self.dim_v = dim_v
 
-
-    def set_weights(self, W_query: pt.Tensor, W_key: pt.Tensor, W_value: pt.Tensor):
+    def set_weights(
+        self, W_query: pt.Tensor, W_key: pt.Tensor, W_value: pt.Tensor
+    ):
         """
         Set the weights for the attention mechanism.
 
@@ -107,8 +106,9 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.values = pt.matmul(inputs, self.W_value)
 
         # Compute attention scores
-        self.scores = pt.matmul(
-            self.queries, self.keys.transpose(-2, -1)) / (self.dim_k ** 0.5)
+        self.scores = pt.matmul(self.queries, self.keys.transpose(-2, -1)) / (
+            self.dim_k**0.5
+        )
         self.scores.retain_grad()
         # print("PT Attention Scores", scores.shape, scores)
         # Apply softmax to get attention weights
@@ -168,8 +168,7 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
         values = tf.matmul(inputs, self.W_value)
 
         # Compute attention scores
-        scores = tf.matmul(
-            queries, keys, transpose_b=True) / (self.dim_k ** 0.5)
+        scores = tf.matmul(queries, keys, transpose_b=True) / (self.dim_k**0.5)
 
         # Apply softmax to get attention weights
         attention_weights = tf.nn.softmax(scores, axis=-1)

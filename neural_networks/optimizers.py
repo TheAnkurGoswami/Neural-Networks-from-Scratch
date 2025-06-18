@@ -259,9 +259,10 @@ class Adam(Optimizer):
             self._beta1 * first_moment_t_prev + (1 - self._beta1) * derivative
         )
         # Update biased second raw moment estimate
-        second_moment_t = self._beta2 * second_moment_t_prev + (
-            1 - self._beta2
-        ) * derivative * derivative
+        second_moment_t = (
+            self._beta2 * second_moment_t_prev
+            + (1 - self._beta2) * derivative * derivative
+        )
         """
         Instead of using derivative * derivative, we could have used
         backend.square(derivative), which is essentially the same.
