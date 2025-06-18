@@ -8,8 +8,7 @@ from neural_networks.optimizers import Optimizer
 
 backend_module = "pt"
 backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
-
+ARRAY_TYPE = Union[np.NDArray, pt.Tensor]
 
 class Dense:
     def __init__(

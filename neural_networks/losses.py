@@ -6,10 +6,10 @@ import torch as pt
 backend_module = "pt"
 backend = np if backend_module == "np" else pt
 ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
-
+NUMERIC_TYPE = Union[float, int, np.number, pt.Tensor]
 
 class Loss:
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> float:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the forward pass of the loss function.
 
@@ -40,7 +40,7 @@ class MSELoss(Loss):
         self._y_true: Optional[ARRAY_TYPE] = None
         self._y_pred: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the Mean Squared Error (MSE) loss.
         Formula for MSE loss: (1/n) * Σ(y_pred - y_true)^2
@@ -84,7 +84,7 @@ class RMSELoss(Loss):
         self._y_pred: Optional[ARRAY_TYPE] = None
         self._loss: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the Root Mean Squared Error (RMSE) loss.
         Formula for RMSE loss: sqrt((1/n) * Σ(y_pred - y_true)^2)
@@ -131,12 +131,12 @@ class CrossEntropyLoss(Loss):
     tasks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._y_true: Optional[ARRAY_TYPE] = None
         self._y_pred: Optional[ARRAY_TYPE] = None
         self._loss: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the forward pass of the loss function.
         Formula for CrossEntropy loss: -Σ(y_true * log(y_pred))
