@@ -9,22 +9,44 @@ from neural_networks.optimizers import Optimizer
 
 
 class ScaledDotProductAttention:
-    def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
+    def __init__(
+        self,
+        d_model: int,
+        dim_k: int,
+        dim_v: int,
+        dim_q: Optional[int] = None,
+        add_bias: bool = True,
+    ) -> None:
         self._inputs: Optional[ARRAY_TYPE] = None
         self.parameters: List[str] = ["query", "key", "value"]
         self.weights: Dict[str, ARRAY_TYPE] = {}
+        self.add_bias = add_bias
 
         self.d_model: int = d_model
         _, backend_module = get_backend()
         if backend_module == "pt":
+            self.d_model: ARRAY_TYPE = pt.tensor(d_model)
+            if dim_q is not None:
+                self.dim_q: ARRAY_TYPE = pt.tensor(dim_q)
             self.dim_k: ARRAY_TYPE = pt.tensor(dim_k)
             self.dim_v: ARRAY_TYPE = pt.tensor(dim_v)
         elif backend_module == "np":
+            self.d_model: ARRAY_TYPE = np.array(d_model, dtype=np.int32)
+            if dim_q is not None:
+                self.dim_q: ARRAY_TYPE = np.array(dim_q, dtype=np.int32)
             self.dim_k: ARRAY_TYPE = np.array(dim_k, dtype=np.int32)
             self.dim_v: ARRAY_TYPE = np.array(dim_v, dtype=np.int32)
-        self.parameter_dims: List[int] = [d_model, dim_k, dim_v]
+
+        self.parameter_dims: List[int] = [
+            dim_q if hasattr(self, "dim_q") else d_model,
+            dim_k,
+            dim_v,
+        ]
         # For moving average based optimizers
         self._dW_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
+        if self.add_bias:
+            self.bias: Dict[str, ARRAY_TYPE] = {}
+            self._dB_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
         self._build()
 
     def _build(self):
@@ -32,19 +54,28 @@ class ScaledDotProductAttention:
         Initializes the weights for the self-attention mechanism.
         """
         _, backend_module = get_backend()
-        for param, dim in zip(self.parameters, self.parameter_dims, strict=False):
+        for param, dim in zip(
+            self.parameters, self.parameter_dims, strict=False
+        ):
             if backend_module == "pt":
                 self.weights[param] = pt.normal(
                     mean=0.0, std=1.0, size=(self.d_model, dim)
                 )
+                if self.add_bias:
+                    self.bias[param] = pt.zeros(size=(1, 1, dim))
             elif backend_module == "np":
                 self.weights[param] = np.random.normal(
                     loc=0.0,
                     scale=1.0,
                     size=(self.d_model, dim),
                 ).astype(np.float32)
-
+                if self.add_bias:
+                    self.bias[param] = np.zeros(shape=(1, 1, dim)).astype(
+                        np.float32
+                    )
             self._dW_history[param] = None
+            if self.add_bias:
+                self._dB_history[param] = None
 
     def forward(self, inputs):
         """
@@ -59,15 +90,8 @@ class ScaledDotProductAttention:
             self.projections[param] = backend.matmul(
                 inputs, self.weights[param]
             )
-        # self.Q = backend.matmul(
-        #     inputs, self.weights["query"]
-        # )
-        # self.K = backend.matmul(
-        #     inputs, self.weights["key"]
-        # )
-        # self.V = backend.matmul(
-        #     inputs, self.weights["value"]
-        # )
+            if self.add_bias:
+                self.projections[param] += self.bias[param]
         """
         Q Shape : (batch_size, seq_len, d_model)
         K Shape : (batch_size, seq_len, dim_k)
@@ -113,7 +137,7 @@ class ScaledDotProductAttention:
         Backward pass of the self-attention
         """
         # dA Shape: (batch_size, seq_len, dim_v)
-        backend, _ = get_backend()
+        backend, backend_module = get_backend()
         dV = backend.matmul(self.softmax_attn.transpose(-1, -2), dA)
         """
         Why transpose(softmax_attn) * dA & not dA * softmax_attn or
@@ -146,6 +170,10 @@ class ScaledDotProductAttention:
 
         dW_v = backend.matmul(self.inputs.transpose(-1, -2), dV)
         dW_v = backend.sum(dW_v, axis=0)
+        if self.add_bias:
+            dB_v = backend.sum(dV, axis=0, keepdims=True)
+            dB_v = backend.sum(dB_v, axis=1, keepdims=True)
+
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
         )
@@ -164,11 +192,18 @@ class ScaledDotProductAttention:
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
         dW_q = backend.matmul(self.inputs.transpose(-1, -2), dQ)
         dW_q = backend.sum(dW_q, axis=0)
+        if self.add_bias:
+            dB_q = backend.sum(dQ, axis=0, keepdims=True)
+            dB_q = backend.sum(dB_q, axis=1, keepdims=True)
+
         dK = backend.matmul(
             d_attention_scores.transpose(-1, -2), self.projections["query"]
         )
         dW_k = backend.matmul(self.inputs.transpose(-1, -2), dK)
         dW_k = backend.sum(dW_k, axis=0)
+        if self.add_bias:
+            dB_k = backend.sum(dK, axis=0, keepdims=True)
+            dB_k = backend.sum(dB_k, axis=1, keepdims=True)
         # gradient w.r.t. X from each branch:
         dX_from_Q = backend.matmul(dQ, self.weights["query"].T)
         dX_from_K = backend.matmul(dK, self.weights["key"].T)
@@ -176,7 +211,12 @@ class ScaledDotProductAttention:
         # print("dW_q shape", dW_q.shape, dW_q)
         # print("dW_k shape", dW_k.shape, dW_k)
         # print("dW_v shape", dW_v.shape, dW_v)
-        for param, dW in zip(self.parameters, [dW_q, dW_k, dW_v], strict=False):
+        # print("dB_q shape", dB_q.shape, dB_q)
+        # print("dB_k shape", dB_k.shape, dB_k)
+        # print("dB_v shape", dB_v.shape, dB_v)
+        for param, dW in zip(
+            self.parameters, [dW_q, dW_k, dW_v], strict=False
+        ):
             dW_change, self._dW_history[param] = optimizer.optimize(
                 self._dW_history[param], dW
             )
@@ -184,6 +224,16 @@ class ScaledDotProductAttention:
             # print("dW_change shape", dW_change.shape, dW_change)
             # print("weights shape", self.weights[param].shape, self.weights[param])
             self.weights[param] -= dW_change
-
+        if self.add_bias:
+            for param, dB in zip(
+                self.parameters, [dB_q, dB_k, dB_v], strict=False
+            ):
+                dB_change, self._dB_history[param] = optimizer.optimize(
+                    self._dB_history[param], dB
+                )
+                # Parametric updates
+                # print("dB_change shape", dB_change.shape, dB_change)
+                # print("bias shape", self.bias[param].shape, self.bias[param])
+                self.bias[param] -= dB_change
         # total gradient into X is the element‐wise sum:
         return dX_from_Q + dX_from_K + dX_from_V

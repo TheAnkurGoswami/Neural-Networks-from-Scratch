@@ -62,7 +62,9 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
     PyTorch implementation of the Scaled Dot-Product Attention mechanism.
     """
 
-    def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
+    def __init__(
+        self, d_model: int, dim_k: int, dim_v: int, add_bias: bool = True
+    ) -> None:
         """
         Initialize the ScaledDotProductAttention class.
 
@@ -74,6 +76,7 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.d_model = d_model
         self.dim_k = dim_k
         self.dim_v = dim_v
+        self.add_bias = add_bias
 
     def set_weights(
         self, W_query: pt.Tensor, W_key: pt.Tensor, W_value: pt.Tensor
@@ -90,6 +93,21 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.W_key = pt.tensor(W_key, requires_grad=True)
         self.W_value = pt.tensor(W_value, requires_grad=True)
 
+    def set_bias(
+        self, b_query: pt.Tensor, b_key: pt.Tensor, b_value: pt.Tensor
+    ):
+        """
+        Set the biases for the attention mechanism.
+
+        Parameters:
+        b_query (torch.Tensor): The query bias vector.
+        b_key (torch.Tensor): The key bias vector.
+        b_value (torch.Tensor): The value bias vector.
+        """
+        self.b_query = pt.tensor(b_query, requires_grad=True)
+        self.b_key = pt.tensor(b_key, requires_grad=True)
+        self.b_value = pt.tensor(b_value, requires_grad=True)
+
     def forward(self, inputs):
         """
         Forward pass of the attention mechanism.
@@ -104,6 +122,11 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         self.queries = pt.matmul(inputs, self.W_query)
         self.keys = pt.matmul(inputs, self.W_key)
         self.values = pt.matmul(inputs, self.W_value)
+
+        if self.add_bias:
+            self.queries += self.b_query
+            self.keys += self.b_key
+            self.values += self.b_value
 
         # Compute attention scores
         self.scores = pt.matmul(self.queries, self.keys.transpose(-2, -1)) / (
@@ -126,7 +149,9 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
     TensorFlow implementation of the Scaled Dot-Product Attention mechanism.
     """
 
-    def __init__(self, d_model: int, dim_k: int, dim_v: int) -> None:
+    def __init__(
+        self, d_model: int, dim_k: int, dim_v: int, add_bias: bool = True
+    ) -> None:
         """
         Initialize the ScaledDotProductAttention class.
 
@@ -138,6 +163,7 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
         self.d_model = d_model
         self.dim_k = dim_k
         self.dim_v = dim_v
+        self.add_bias = add_bias
 
     def set_weights(self, W_query, W_key, W_value):
         """
@@ -151,6 +177,19 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
         self.W_query = tf.Variable(W_query)
         self.W_key = tf.Variable(W_key)
         self.W_value = tf.Variable(W_value)
+
+    def set_bias(self, b_query, b_key, b_value):
+        """
+        Set the biases for the attention mechanism.
+
+        Parameters:
+        b_query (tf.Tensor): The query bias vector.
+        b_key (tf.Tensor): The key bias vector.
+        b_value (tf.Tensor): The value bias vector.
+        """
+        self.b_query = tf.Variable(b_query)
+        self.b_key = tf.Variable(b_key)
+        self.b_value = tf.Variable(b_value)
 
     def forward(self, inputs):
         """
@@ -166,6 +205,11 @@ class ScaledDotProductAttentionTensorflow(tf.Module):
         queries = tf.matmul(inputs, self.W_query)
         keys = tf.matmul(inputs, self.W_key)
         values = tf.matmul(inputs, self.W_value)
+
+        if self.add_bias:
+            queries += self.b_query
+            keys += self.b_key
+            values += self.b_value
 
         # Compute attention scores
         scores = tf.matmul(queries, keys, transpose_b=True) / (self.dim_k**0.5)
