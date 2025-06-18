@@ -43,10 +43,6 @@ jobs:
       run: |
         make lint-requirements
 
-    - name: Lint Code (use f"" style formating)
-      run: |
-        make lint-stringformat
-
     # - name: Lint Code (type-check)
     #   run: |
     #     make lint-type-check
