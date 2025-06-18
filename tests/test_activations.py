@@ -139,7 +139,9 @@ def test_activations(activation_str: str) -> None:
             *tf_biases_list,
         ]
         grads: List[tf.Tensor] = tape.gradient(cost_tf, trainable_variables)
-        optimizer_tf.apply_gradients(zip(grads, trainable_variables))
+        optimizer_tf.apply_gradients(
+            zip(grads, trainable_variables, strict=False)
+        )
 
         # Forward pass for PyTorch neural network
         feed_in_torch: torch.Tensor = x_torch

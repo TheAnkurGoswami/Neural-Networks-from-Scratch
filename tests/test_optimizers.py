@@ -152,7 +152,9 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
             cost_tf = tf.sqrt(loss_fn(output, y_tf))
         trainable_variables = [*tf_weights_list, *tf_biases_list]
         grads = tape.gradient(cost_tf, trainable_variables)
-        optimizer_tf.apply_gradients(zip(grads, trainable_variables))
+        optimizer_tf.apply_gradients(
+            zip(grads, trainable_variables, strict=False)
+        )
 
         # PyTorch neural network
         feed_in_torch = x_torch

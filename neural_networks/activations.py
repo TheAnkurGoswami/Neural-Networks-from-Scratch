@@ -209,7 +209,7 @@ class Softmax(Activation):
         super().__init__()
         self.clip = Clip(1e-07, 1.0 - 1e-07)
 
-    def forward(self, inputs: ARRAY_TYPE):
+    def forward(self, inputs: ARRAY_TYPE)  -> ARRAY_TYPE:
         """
         Performs the forward pass of the activation function.
         This method computes the activation values using the softmax function:
@@ -226,8 +226,14 @@ class Softmax(Activation):
 
         # Stabilize exponent calculation
         if backend_module == "np":
+            assert isinstance(
+                inputs, np.ndarray
+            ), "Inputs must be a NumPy array"
             inputs = inputs - np.max(inputs, axis=1, keepdims=True)
         elif backend_module == "pt":
+            assert isinstance(
+                inputs, pt.Tensor
+            ), "Inputs must be a PyTorch tensor"
             inputs = inputs - pt.max(inputs, dim=1, keepdim=True).values
         num = backend.exp(inputs)
         denom = backend.sum(num, dim=1, keepdim=True)
@@ -236,7 +242,7 @@ class Softmax(Activation):
         # return clipped_activation
         return self._activation
 
-    def derivative(self):
+    def derivative(self) -> ARRAY_TYPE:
         r"""
         Computes the Jacobian matrix of the derivative of the activation
         function.
@@ -284,7 +290,7 @@ class Softmax(Activation):
                         )
         return jacobian_mat
 
-    def backprop(self, dA: pt.Tensor):
+    def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         dA = dL/da = dY_hat
         """
@@ -293,7 +299,7 @@ class Softmax(Activation):
         dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
-                dA[batch_idx: batch_idx + 1, :], jac_mat[batch_idx]
+                dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
             )
             dZ_arr.append(dZ.flatten())
         return backend.stack(dZ_arr)

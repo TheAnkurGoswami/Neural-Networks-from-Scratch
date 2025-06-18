@@ -2,7 +2,8 @@ name: Python Checks
 
 on:
   push:
-    branches: ['*']
+    branches:
+      - '**'
 
 jobs:
   lints:
@@ -12,15 +13,15 @@ jobs:
         python: ['3.11']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
 
     - name: Cache python modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ env.pythonLocation }}
         key: ${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements.lint.txt') }}
@@ -29,49 +30,22 @@ jobs:
       run: |
         make install
 
-    - name: Lint Code (use uppercase TODO, XXX, FIXME, NOTE and explain nopep8)
+    - name: Install Ruff
       run: |
-        make lint-comment
+        pip install ruff
+    # Update output format to enable automatic inline annotations.
+    - name: Run Ruff
+      run: |
+        ruff check --output-format=github .
 
-    - name: Lint Code (use empty main inits)
-      run: |
-        make lint-emptyinit
 
     - name: Lint Code (sort requirements)
       run: |
         make lint-requirements
 
-    - name: Lint Code (use f"" style formating)
-      run: |
-        make lint-stringformat
-
-    - name: Lint Code (indent in fours)
-      run: |
-        make lint-indent
-
-    - name: Lint Code (no f"a", "{a}", or f'{a}')
-      run: |
-        make lint-forgottenformat
-
-    - name: Only pyi in stubs
-      run: |
-        make lint-pyi
-
-    - name: Lint Code (missing trailing comma)
-      run: |
-        make lint-flake8
-
-    - name: Lint Code (pycodestyle)
-      run: |
-        make lint-pycodestyle
-
     # - name: Lint Code (type-check)
     #   run: |
     #     make lint-type-check
-
-    - name: Lint Code (pylint)
-      run: |
-        make lint-pylint
 
     - name: Run tests
       run: |
