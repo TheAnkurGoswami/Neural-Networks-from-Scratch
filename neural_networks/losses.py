@@ -1,13 +1,13 @@
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 import torch as pt
 
-from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.backend import ARRAY_TYPE, NUMERIC_TYPE, get_backend
 
 
 class Loss:
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> float:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the forward pass of the loss function.
 
@@ -38,7 +38,7 @@ class MSELoss(Loss):
         self._y_true: Optional[ARRAY_TYPE] = None
         self._y_pred: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the Mean Squared Error (MSE) loss.
         Formula for MSE loss: (1/n) * Σ(y_pred - y_true)^2
@@ -84,7 +84,6 @@ class MSELoss(Loss):
         """
 
 
-
 class RMSELoss(Loss):
     def __init__(self) -> None:
         """
@@ -94,7 +93,7 @@ class RMSELoss(Loss):
         self._y_pred: Optional[ARRAY_TYPE] = None
         self._loss: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the Root Mean Squared Error (RMSE) loss.
         Formula for RMSE loss: sqrt((1/n) * Σ(y_pred - y_true)^2)
@@ -135,9 +134,7 @@ class RMSELoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         assert self._loss is not None
-        return (self._y_pred - self._y_true) / (
-            self._size * self._loss
-        )
+        return (self._y_pred - self._y_true) / (self._size * self._loss)
 
 
 class CrossEntropyLoss(Loss):
@@ -147,12 +144,12 @@ class CrossEntropyLoss(Loss):
     tasks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._y_true: Optional[ARRAY_TYPE] = None
         self._y_pred: Optional[ARRAY_TYPE] = None
         self._loss: Optional[ARRAY_TYPE] = None
 
-    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> ARRAY_TYPE:
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
         Computes the forward pass of the loss function.
         Formula for CrossEntropy loss: -Σ(y_true * log(y_pred))

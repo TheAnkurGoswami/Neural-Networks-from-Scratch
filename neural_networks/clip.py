@@ -43,6 +43,12 @@ class Clip:
         assert self._inputs is not None
         _, backend_module = get_backend()
         if backend_module == "pt":
+            assert isinstance(
+                dA, pt.Tensor
+            ), "dA must be a PyTorch tensor"
+            assert isinstance(
+                self._inputs, pt.Tensor
+            ), "Inputs must be a PyTorch tensor"
             dZ = pt.where(
                 (self._inputs > self._min_val)
                 & (self._inputs < self._max_val),
@@ -50,6 +56,12 @@ class Clip:
                 pt.zeros_like(self._inputs),
             )
         elif backend_module == "np":
+            assert isinstance(
+                dA, np.ndarray
+            ), "dA must be a NumPy array"
+            assert isinstance(
+                self._inputs, np.ndarray
+            ), "Inputs must be a NumPy array"
             dZ = np.where(
                 (self._inputs > self._min_val)
                 & (self._inputs < self._max_val),
