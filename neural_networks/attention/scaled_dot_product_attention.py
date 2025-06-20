@@ -4,6 +4,7 @@ import numpy as np
 import torch as pt
 
 from neural_networks.activations import Softmax
+from neural_networks.attention.projection import Projection
 from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.optimizers import Optimizer
 
@@ -19,8 +20,8 @@ class ScaledDotProductAttention:
     ) -> None:
         self._inputs: Optional[ARRAY_TYPE] = None
         self.parameters: List[str] = ["query", "key", "value"]
-        self.weights: Dict[str, ARRAY_TYPE] = {}
         self.add_bias = add_bias
+        self.proj_layer: Dict[str, Projection] = {}
 
         self.d_model: int = d_model
         _, backend_module = get_backend()
@@ -43,39 +44,20 @@ class ScaledDotProductAttention:
             dim_v,
         ]
         # For moving average based optimizers
-        self._dW_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
-        if self.add_bias:
-            self.bias: Dict[str, ARRAY_TYPE] = {}
-            self._dB_history: Dict[str, Optional[Dict[str, ARRAY_TYPE]]] = {}
         self._build()
 
     def _build(self):
         """
         Initializes the weights for the self-attention mechanism.
         """
-        _, backend_module = get_backend()
         for param, dim in zip(
             self.parameters, self.parameter_dims, strict=False
         ):
-            if backend_module == "pt":
-                self.weights[param] = pt.normal(
-                    mean=0.0, std=1.0, size=(self.d_model, dim)
-                )
-                if self.add_bias:
-                    self.bias[param] = pt.zeros(size=(1, 1, dim))
-            elif backend_module == "np":
-                self.weights[param] = np.random.normal(
-                    loc=0.0,
-                    scale=1.0,
-                    size=(self.d_model, dim),
-                ).astype(np.float32)
-                if self.add_bias:
-                    self.bias[param] = np.zeros(shape=(1, 1, dim)).astype(
-                        np.float32
-                    )
-            self._dW_history[param] = None
-            if self.add_bias:
-                self._dB_history[param] = None
+            self.proj_layer[param] = Projection(
+                in_features=self.d_model,
+                out_features=dim,
+                add_bias=self.add_bias,
+            )
 
     def forward(self, inputs):
         """
@@ -87,13 +69,9 @@ class ScaledDotProductAttention:
         backend, _ = get_backend()
         self.projections = {}
         for param in self.parameters:
-            self.projections[param] = backend.matmul(
-                inputs, self.weights[param]
-            )
-            if self.add_bias:
-                self.projections[param] += self.bias[param]
+            self.projections[param] = self.proj_layer[param].forward(inputs)
         """
-        Q Shape : (batch_size, seq_len, d_model)
+        Q Shape : (batch_size, seq_len, d_model or dim_q)
         K Shape : (batch_size, seq_len, dim_k)
         V Shape : (batch_size, seq_len, dim_v)
         """
@@ -168,12 +146,6 @@ class ScaledDotProductAttention:
         the attention scores with respect to the input.
         """
 
-        dW_v = backend.matmul(self.inputs.transpose(-1, -2), dV)
-        dW_v = backend.sum(dW_v, axis=0)
-        if self.add_bias:
-            dB_v = backend.sum(dV, axis=0, keepdims=True)
-            dB_v = backend.sum(dB_v, axis=1, keepdims=True)
-
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
         )
@@ -190,50 +162,14 @@ class ScaledDotProductAttention:
         d_attention_scores /= backend.sqrt(self.dim_k)
         # print("d_attention_scores shape", d_attention_scores.shape, d_attention_scores)
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
-        dW_q = backend.matmul(self.inputs.transpose(-1, -2), dQ)
-        dW_q = backend.sum(dW_q, axis=0)
-        if self.add_bias:
-            dB_q = backend.sum(dQ, axis=0, keepdims=True)
-            dB_q = backend.sum(dB_q, axis=1, keepdims=True)
 
         dK = backend.matmul(
             d_attention_scores.transpose(-1, -2), self.projections["query"]
         )
-        dW_k = backend.matmul(self.inputs.transpose(-1, -2), dK)
-        dW_k = backend.sum(dW_k, axis=0)
-        if self.add_bias:
-            dB_k = backend.sum(dK, axis=0, keepdims=True)
-            dB_k = backend.sum(dB_k, axis=1, keepdims=True)
-        # gradient w.r.t. X from each branch:
-        dX_from_Q = backend.matmul(dQ, self.weights["query"].T)
-        dX_from_K = backend.matmul(dK, self.weights["key"].T)
-        dX_from_V = backend.matmul(dV, self.weights["value"].T)
-        # print("dW_q shape", dW_q.shape, dW_q)
-        # print("dW_k shape", dW_k.shape, dW_k)
-        # print("dW_v shape", dW_v.shape, dW_v)
-        # print("dB_q shape", dB_q.shape, dB_q)
-        # print("dB_k shape", dB_k.shape, dB_k)
-        # print("dB_v shape", dB_v.shape, dB_v)
-        for param, dW in zip(
-            self.parameters, [dW_q, dW_k, dW_v], strict=False
-        ):
-            dW_change, self._dW_history[param] = optimizer.optimize(
-                self._dW_history[param], dW
-            )
-            # Parametric updates
-            # print("dW_change shape", dW_change.shape, dW_change)
-            # print("weights shape", self.weights[param].shape, self.weights[param])
-            self.weights[param] -= dW_change
-        if self.add_bias:
-            for param, dB in zip(
-                self.parameters, [dB_q, dB_k, dB_v], strict=False
-            ):
-                dB_change, self._dB_history[param] = optimizer.optimize(
-                    self._dB_history[param], dB
-                )
-                # Parametric updates
-                # print("dB_change shape", dB_change.shape, dB_change)
-                # print("bias shape", self.bias[param].shape, self.bias[param])
-                self.bias[param] -= dB_change
+
+        dX_from_Q = self.proj_layer["query"].backprop(dQ, optimizer)
+        dX_from_K = self.proj_layer["key"].backprop(dK, optimizer)
+        dX_from_V = self.proj_layer["value"].backprop(dV, optimizer)
+
         # total gradient into X is the element‐wise sum:
         return dX_from_Q + dX_from_K + dX_from_V

@@ -62,30 +62,30 @@ def test_scaled_dot_product_attention(add_bias: bool):
         d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv, add_bias=add_bias
     )
     sdpa_pt.set_weights(
-        sdpa_cus.weights["query"].clone().detach().numpy(),
-        sdpa_cus.weights["key"].clone().detach().numpy(),
-        sdpa_cus.weights["value"].clone().detach().numpy(),
+        sdpa_cus.proj_layer["query"]._weights.clone().detach().numpy(),
+        sdpa_cus.proj_layer["key"]._weights.clone().detach().numpy(),
+        sdpa_cus.proj_layer["value"]._weights.clone().detach().numpy(),
     )
 
     sdpa_tf = ScaledDotProductAttentionTensorflow(
         d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv, add_bias=add_bias
     )
     sdpa_tf.set_weights(
-        sdpa_cus.weights["query"].clone().detach().numpy(),
-        sdpa_cus.weights["key"].clone().detach().numpy(),
-        sdpa_cus.weights["value"].clone().detach().numpy(),
+        sdpa_cus.proj_layer["query"]._weights.clone().detach().numpy(),
+        sdpa_cus.proj_layer["key"]._weights.clone().detach().numpy(),
+        sdpa_cus.proj_layer["value"]._weights.clone().detach().numpy(),
     )
 
     if add_bias:
         sdpa_pt.set_bias(
-            sdpa_cus.bias["query"].clone().detach().numpy(),
-            sdpa_cus.bias["key"].clone().detach().numpy(),
-            sdpa_cus.bias["value"].clone().detach().numpy(),
+            sdpa_cus.proj_layer["query"]._bias.clone().detach().numpy(),
+            sdpa_cus.proj_layer["key"]._bias.clone().detach().numpy(),
+            sdpa_cus.proj_layer["value"]._bias.clone().detach().numpy(),
         )
         sdpa_tf.set_bias(
-            sdpa_cus.bias["query"].clone().detach().numpy(),
-            sdpa_cus.bias["key"].clone().detach().numpy(),
-            sdpa_cus.bias["value"].clone().detach().numpy(),
+            sdpa_cus.proj_layer["query"]._bias.clone().detach().numpy(),
+            sdpa_cus.proj_layer["key"]._bias.clone().detach().numpy(),
+            sdpa_cus.proj_layer["value"]._bias.clone().detach().numpy(),
         )
 
     # Initialize loss functions and optimizers for each framework
@@ -157,10 +157,11 @@ def test_scaled_dot_product_attention(add_bias: bool):
             strict=False,
         ):
             assert check_closeness(
-                sdpa_cus.bias[key].detach().numpy(), b_tf.numpy()
+                sdpa_cus.proj_layer[key]._bias.detach().numpy(), b_tf.numpy()
             ), f"{get_bias_template('tf')}"
             assert check_closeness(
-                sdpa_cus.bias[key].detach().numpy(), b_pt.detach().numpy()
+                sdpa_cus.proj_layer[key]._bias.detach().numpy(),
+                b_pt.detach().numpy(),
             ), f"{get_bias_template('pt')}"
 
     # Check closeness of weights
@@ -171,8 +172,9 @@ def test_scaled_dot_product_attention(add_bias: bool):
         strict=False,
     ):
         assert check_closeness(
-            sdpa_cus.weights[key].detach().numpy(), W_tf.numpy()
+            sdpa_cus.proj_layer[key]._weights.detach().numpy(), W_tf.numpy()
         ), f"{get_weight_template('tf')}"
         assert check_closeness(
-            sdpa_cus.weights[key].detach().numpy(), W_pt.detach().numpy()
+            sdpa_cus.proj_layer[key]._weights.detach().numpy(),
+            W_pt.detach().numpy(),
         ), f"{get_weight_template('pt')}"
