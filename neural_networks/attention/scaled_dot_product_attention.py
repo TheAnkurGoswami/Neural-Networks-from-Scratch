@@ -6,7 +6,6 @@ import torch as pt
 from neural_networks.activations import Softmax
 from neural_networks.attention.projection import Projection
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.optimizers import Optimizer
 
 
 class ScaledDotProductAttention:
@@ -16,11 +15,7 @@ class ScaledDotProductAttention:
         dim_k: int,
         dim_v: int,
         dim_q: Optional[int] = None,
-        add_bias: bool = True,
     ) -> None:
-        self._inputs: Optional[ARRAY_TYPE] = None
-        self.parameters: List[str] = ["query", "key", "value"]
-        self.add_bias = add_bias
         self.proj_layer: Dict[str, Projection] = {}
 
         self.d_model: int = d_model
@@ -43,38 +38,22 @@ class ScaledDotProductAttention:
             dim_k,
             dim_v,
         ]
-        # For moving average based optimizers
-        self._build()
 
-    def _build(self):
-        """
-        Initializes the weights for the self-attention mechanism.
-        """
-        for param, dim in zip(
-            self.parameters, self.parameter_dims, strict=False
-        ):
-            self.proj_layer[param] = Projection(
-                in_features=self.d_model,
-                out_features=dim,
-                add_bias=self.add_bias,
-            )
-
-    def forward(self, inputs):
+    def forward(self, q_proj, k_proj, v_proj):
         """
         Forward pass of the self-attention mechanism.
         """
-        # Implement the forward pass logic here
-        self.inputs = inputs
-        #  Shape of inputs: (batch_size, seq_len, d_model)
-        backend, _ = get_backend()
-        self.projections = {}
-        for param in self.parameters:
-            self.projections[param] = self.proj_layer[param].forward(inputs)
+        self.projections = {
+            "query": q_proj,
+            "key": k_proj,
+            "value": v_proj,
+        }
         """
         Q Shape : (batch_size, seq_len, d_model or dim_q)
         K Shape : (batch_size, seq_len, dim_k)
         V Shape : (batch_size, seq_len, dim_v)
         """
+        backend, _ = get_backend()
         # Compute attention scores
         #  K.transpose(-1, -2) Shape : (batch_size, dim_k, seq_len)
         attention_scores = backend.matmul(
@@ -91,7 +70,6 @@ class ScaledDotProductAttention:
         # attention_scores Shape : (batch_size, seq_len, seq_len)
 
         # Apply softmax to get attention weights
-        # print("Attention bf softmax", attention_scores.shape, attention_scores)
         batch_dim, seq_len_dim, _ = attention_scores.shape
         attention_scores = attention_scores.reshape(
             (batch_dim * seq_len_dim, seq_len_dim)
@@ -103,19 +81,18 @@ class ScaledDotProductAttention:
         self.softmax_attn = softmax_attn.reshape(
             (batch_dim, seq_len_dim, seq_len_dim)
         )
-        # print("Cust Softmax attn", self.softmax_attn.shape, self.softmax_attn)
         self.attention = backend.matmul(
             self.softmax_attn, self.projections["value"]
         )
         # Shape of attention: (batch_size, seq_len, dim_v)
         return self.attention
 
-    def backprop(self, dA: ARRAY_TYPE, optimizer: Optimizer) -> ARRAY_TYPE:
+    def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Backward pass of the self-attention
         """
         # dA Shape: (batch_size, seq_len, dim_v)
-        backend, backend_module = get_backend()
+        backend, _ = get_backend()
         dV = backend.matmul(self.softmax_attn.transpose(-1, -2), dA)
         """
         Why transpose(softmax_attn) * dA & not dA * softmax_attn or
@@ -149,7 +126,6 @@ class ScaledDotProductAttention:
         d_softmax_attention = backend.matmul(
             dA, self.projections["value"].transpose(-1, -2)
         )
-        # print("d_softmax_attention shape", d_softmax_attention.shape, d_softmax_attention)
         batch_size, seq_len, _ = d_softmax_attention.shape
         d_softmax_attention = d_softmax_attention.reshape(
             (batch_size * seq_len, seq_len)
@@ -160,16 +136,10 @@ class ScaledDotProductAttention:
             (batch_size, seq_len, seq_len)
         )
         d_attention_scores /= backend.sqrt(self.dim_k)
-        # print("d_attention_scores shape", d_attention_scores.shape, d_attention_scores)
+
         dQ = backend.matmul(d_attention_scores, self.projections["key"])
 
         dK = backend.matmul(
             d_attention_scores.transpose(-1, -2), self.projections["query"]
         )
-
-        dX_from_Q = self.proj_layer["query"].backprop(dQ, optimizer)
-        dX_from_K = self.proj_layer["key"].backprop(dK, optimizer)
-        dX_from_V = self.proj_layer["value"].backprop(dV, optimizer)
-
-        # total gradient into X is the element‐wise sum:
-        return dX_from_Q + dX_from_K + dX_from_V
+        return dQ, dK, dV

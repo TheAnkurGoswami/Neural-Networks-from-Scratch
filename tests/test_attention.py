@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Dict
 
 import numpy as np
 import pytest
@@ -6,6 +7,7 @@ import tensorflow as tf
 import torch
 
 from neural_networks.attention.multihead_attention import MultiHeadAttention
+from neural_networks.attention.projection import Projection
 from neural_networks.attention.scaled_dot_product_attention import (
     ScaledDotProductAttention,
 )
@@ -54,38 +56,47 @@ def test_scaled_dot_product_attention(add_bias: bool):
     x_tf = tf.constant(x.astype(np.float32))
     y_tf = tf.constant(y.astype(np.float32))
 
+    proj_layer: Dict[str, Projection] = {}
+
+    for param in ["query", "key", "value"]:
+        proj_layer[param] = Projection(
+            in_features=d_model,
+            out_features=d_model,
+            add_bias=add_bias,
+        )
+
     sdpa_cus = ScaledDotProductAttention(
-        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv, add_bias=add_bias
+        d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv
     )
 
     sdpa_pt = ScaledDotProductAttentionPytorch(
         d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv, add_bias=add_bias
     )
     sdpa_pt.set_weights(
-        sdpa_cus.proj_layer["query"]._weights.clone().detach().numpy(),
-        sdpa_cus.proj_layer["key"]._weights.clone().detach().numpy(),
-        sdpa_cus.proj_layer["value"]._weights.clone().detach().numpy(),
+        proj_layer["query"]._weights.clone().detach().numpy(),
+        proj_layer["key"]._weights.clone().detach().numpy(),
+        proj_layer["value"]._weights.clone().detach().numpy(),
     )
 
     sdpa_tf = ScaledDotProductAttentionTensorflow(
         d_model=d_model, dim_k=dim_kqv, dim_v=dim_kqv, add_bias=add_bias
     )
     sdpa_tf.set_weights(
-        sdpa_cus.proj_layer["query"]._weights.clone().detach().numpy(),
-        sdpa_cus.proj_layer["key"]._weights.clone().detach().numpy(),
-        sdpa_cus.proj_layer["value"]._weights.clone().detach().numpy(),
+        proj_layer["query"]._weights.clone().detach().numpy(),
+        proj_layer["key"]._weights.clone().detach().numpy(),
+        proj_layer["value"]._weights.clone().detach().numpy(),
     )
 
     if add_bias:
         sdpa_pt.set_bias(
-            sdpa_cus.proj_layer["query"]._bias.clone().detach().numpy(),
-            sdpa_cus.proj_layer["key"]._bias.clone().detach().numpy(),
-            sdpa_cus.proj_layer["value"]._bias.clone().detach().numpy(),
+            proj_layer["query"]._bias.clone().detach().numpy(),
+            proj_layer["key"]._bias.clone().detach().numpy(),
+            proj_layer["value"]._bias.clone().detach().numpy(),
         )
         sdpa_tf.set_bias(
-            sdpa_cus.proj_layer["query"]._bias.clone().detach().numpy(),
-            sdpa_cus.proj_layer["key"]._bias.clone().detach().numpy(),
-            sdpa_cus.proj_layer["value"]._bias.clone().detach().numpy(),
+            proj_layer["query"]._bias.clone().detach().numpy(),
+            proj_layer["key"]._bias.clone().detach().numpy(),
+            proj_layer["value"]._bias.clone().detach().numpy(),
         )
 
     # Initialize loss functions and optimizers for each framework
@@ -104,7 +115,11 @@ def test_scaled_dot_product_attention(add_bias: bool):
         lr=learning_rate,
     )
 
-    output_cus = sdpa_cus.forward(x_torch.clone().detach())
+    projections = []
+    for param in ["query", "key", "value"]:
+        dZ = proj_layer[param].forward(x_torch.clone().detach())
+        projections.append(dZ)
+    output_cus = sdpa_cus.forward(*projections)
     cost_cus = loss.forward(output_cus, y_torch)
 
     output_pt = sdpa_pt.forward(x_torch)
@@ -117,7 +132,12 @@ def test_scaled_dot_product_attention(add_bias: bool):
     # Backward pass and optimization
     dL = loss.backprop()
     optimizer.set_cur_epoch(1)
-    sdpa_cus.backprop(dL, optimizer)
+    dQ, dK, dV = sdpa_cus.backprop(dL)
+
+    for param, dZ in zip(
+        ["query", "key", "value"], [dQ, dK, dV], strict=False
+    ):
+        proj_layer[param].backprop(dZ, optimizer)
 
     cost_pt.backward()
     optimizer_torch.step()
@@ -157,10 +177,10 @@ def test_scaled_dot_product_attention(add_bias: bool):
             strict=False,
         ):
             assert check_closeness(
-                sdpa_cus.proj_layer[key]._bias.detach().numpy(), b_tf.numpy()
+                proj_layer[key]._bias.detach().numpy(), b_tf.numpy()
             ), f"{get_bias_template('tf')}"
             assert check_closeness(
-                sdpa_cus.proj_layer[key]._bias.detach().numpy(),
+                proj_layer[key]._bias.detach().numpy(),
                 b_pt.detach().numpy(),
             ), f"{get_bias_template('pt')}"
 
@@ -172,9 +192,10 @@ def test_scaled_dot_product_attention(add_bias: bool):
         strict=False,
     ):
         assert check_closeness(
-            sdpa_cus.proj_layer[key]._weights.detach().numpy(), W_tf.numpy()
+            proj_layer[key]._weights.detach().numpy(), W_tf.numpy()
         ), f"{get_weight_template('tf')}"
         assert check_closeness(
-            sdpa_cus.proj_layer[key]._weights.detach().numpy(),
+            proj_layer[key]._weights.detach().numpy(),
             W_pt.detach().numpy(),
         ), f"{get_weight_template('pt')}"
+
