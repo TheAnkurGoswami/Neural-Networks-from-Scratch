@@ -14,6 +14,7 @@ class Dense:
         in_features: int,
         out_features: int,
         activation: Optional[str] = None,
+        add_bias: bool = True,
         retain_grad: bool = False,
     ) -> None:
         """
@@ -28,6 +29,7 @@ class Dense:
         self._in_features = in_features
         self._out_features = out_features
         self._activation = get_activation_fn(activation)()
+        self.add_bias = add_bias
         self._inputs: Optional[ARRAY_TYPE] = None
         self._weights, self._bias = self._build()
 
@@ -61,6 +63,8 @@ class Dense:
                 size=(self._in_features, self._out_features),
             ).astype(np.float32)
             bias = np.zeros(shape=(1, self._out_features)).astype(np.float32)
+        if not self.add_bias:
+            bias = None
         return weights, bias
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
@@ -83,7 +87,9 @@ class Dense:
                 self._inputs = pt.tensor(inputs, dtype=pt.float32)
         elif backend_module == "np":
             self._inputs = np.array(inputs)
-        result = backend.matmul(self._inputs, self._weights) + self._bias
+        result = backend.matmul(self._inputs, self._weights)
+        if self.add_bias:
+            result += self._bias
         activation = self._activation.forward(result)
         return activation
 
@@ -105,16 +111,22 @@ class Dense:
         backend, backend_module = get_backend()
         dZ = self._activation.backprop(dA)
         dW = backend.matmul(self._inputs.T, dZ)
-        if backend_module == "pt":
-            dB = backend.sum(dZ, dim=0, keepdim=True)
-        elif backend_module == "np":
-            dB = backend.sum(dZ, axis=0, keepdims=True)
-        dX = backend.matmul(dZ, self._weights.T)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
-        db_change, self._db_history = optimizer.optimize(self._db_history, dB)
-        # Parametric updates
         self._weights -= dw_change
-        self._bias -= db_change
+        dX = backend.matmul(dZ, self._weights.T)
+
+        if self.add_bias:
+            if backend_module == "pt":
+                dB = backend.sum(dZ, dim=0, keepdim=True)
+            elif backend_module == "np":
+                dB = backend.sum(dZ, axis=0, keepdims=True)
+            db_change, self._db_history = optimizer.optimize(
+                self._db_history, dB
+            )
+            # Parametric updates
+            self._bias -= db_change
+        else:
+            dB = None
 
         if self._retain_grad:
             self._dW = dW
