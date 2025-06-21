@@ -6,6 +6,7 @@ import torch as pt
 from neural_networks.backend import ARRAY_TYPE, NUMERIC_TYPE, get_backend
 
 
+
 class Loss:
     def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
@@ -117,7 +118,8 @@ class RMSELoss(Loss):
             self._size = y_true.size
         self._y_true = y_true
         self._y_pred = y_pred
-        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
+        eps = 1e-16
+        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2) + eps)
         assert self._loss is not None
         return self._loss
 

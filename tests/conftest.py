@@ -1,7 +1,19 @@
 import logging
 import os
 
+import numpy as np
 import pytest
+import tensorflow as tf
+import torch
+
+
+@pytest.fixture(autouse=True)
+def initialize():
+    torch.set_printoptions(precision=10)
+    np.set_printoptions(precision=10)
+    tf.keras.backend.set_floatx("float32")
+    np.random.seed(100)
+    torch.manual_seed(100)
 
 
 @pytest.fixture(autouse=True)

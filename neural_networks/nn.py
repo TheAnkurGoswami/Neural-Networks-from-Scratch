@@ -8,6 +8,7 @@ from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.optimizers import Optimizer
 
 
+
 class Dense:
     def __init__(
         self,

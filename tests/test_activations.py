@@ -133,7 +133,7 @@ def test_activations(activation_str: str) -> None:
             loss_tf: tf.keras.losses.MeanSquaredError = (
                 tf.keras.losses.MeanSquaredError()
             )
-            cost_tf: tf.Tensor = tf.sqrt(loss_tf(output_tf, y_tf))
+            cost_tf: tf.Tensor = tf.sqrt(loss_tf(output_tf, y_tf) + 1e-16)
         trainable_variables: List[tf.Variable] = [
             *tf_weights_list,
             *tf_biases_list,
@@ -146,7 +146,6 @@ def test_activations(activation_str: str) -> None:
         # Forward pass for PyTorch neural network
         feed_in_torch: torch.Tensor = x_torch
         for idx in range(n_layers):
-            optimizer_torch.zero_grad()
             output_torch: torch.Tensor = (
                 torch.matmul(feed_in_torch, torch_weights_list[idx])
                 + torch_biases_list[idx]
@@ -155,10 +154,11 @@ def test_activations(activation_str: str) -> None:
             feed_in_torch = output_torch
         loss_torch: torch.nn.MSELoss = torch.nn.MSELoss()
         loss_torch_fn: torch.Tensor = torch.sqrt(
-            loss_torch(output_torch, y_torch)
+            loss_torch(output_torch, y_torch) + 1e-16
         )
         loss_torch_fn.backward()
         optimizer_torch.step()
+        optimizer_torch.zero_grad()
 
         # Check if weights and biases are close between custom, TensorFlow, and
         # PyTorch models
