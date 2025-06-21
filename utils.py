@@ -137,7 +137,6 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
         # Apply softmax to get attention weights
         self.attention_weights = pt.softmax(self.scores, dim=-1)
         self.attention_weights.retain_grad()
-        # print("PT Attention Weights", attention_weights.shape, attention_weights)
         # Compute the output
         self.output = pt.matmul(self.attention_weights, self.values)
         self.output.retain_grad()

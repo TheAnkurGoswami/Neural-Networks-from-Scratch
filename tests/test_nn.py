@@ -19,15 +19,20 @@ from utils import check_closeness
 DEBUG = False
 
 
-def test_no_hidden_layer_simple_nn() -> None:
+@pytest.mark.parametrize("batch_size", [1, 5])
+def test_no_hidden_layer_simple_nn(batch_size: int) -> None:
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.01
     # batch_size = 3
 
     # Generate random input and output data
-    x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
-    y = np.random.randint(low=0, high=10, size=(1, 1)).astype(np.float32)
+    x = np.random.randint(low=0, high=10, size=(batch_size, 5)).astype(
+        np.float32
+    )
+    y = np.random.randint(low=0, high=10, size=(batch_size, 1)).astype(
+        np.float32
+    )
 
     # Initialize a single dense layer neural network
     dense = Dense(in_features=x.shape[1], out_features=1)

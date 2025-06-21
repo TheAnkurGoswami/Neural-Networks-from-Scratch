@@ -6,7 +6,6 @@ import torch as pt
 from neural_networks.backend import ARRAY_TYPE, NUMERIC_TYPE, get_backend
 
 
-
 class Loss:
     def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """

@@ -29,11 +29,6 @@ TORCH_OPTIM_MAP = {
     "adam": torch.optim.Adam,
 }
 
-# Set print options for better readability
-# torch.set_printoptions(precision=8)
-# np.set_printoptions(precision=8)
-# tf.keras.backend.set_floatx("float32")
-
 
 @pytest.mark.parametrize(
     "optimizer_str, kwargs",
