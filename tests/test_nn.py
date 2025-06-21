@@ -16,9 +16,6 @@ from tests.templates import (
 )
 from utils import check_closeness
 
-torch.set_printoptions(precision=10)
-np.set_printoptions(precision=10)
-tf.keras.backend.set_floatx("float32")
 DEBUG = False
 
 
@@ -27,7 +24,6 @@ def test_no_hidden_layer_simple_nn() -> None:
     epochs = 10
     learning_rate = 0.01
     # batch_size = 3
-    np.random.seed(100)
 
     # Generate random input and output data
     x = np.random.randint(low=0, high=10, size=(1, 5)).astype(np.float32)
@@ -112,7 +108,6 @@ def test_n_hidden_layer_simple_nn(
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    np.random.seed(100)
 
     # Generate random input and output data
     if not normalize_inputs:
@@ -276,8 +271,6 @@ def test_n_hidden_layer_classification(
     # Set the number of epochs and learning rate for training
     epochs = 10
     learning_rate = 0.001
-    np.random.seed(100)
-    torch.manual_seed(100)
 
     # Generate random input and output data
     if not normalize_inputs:
