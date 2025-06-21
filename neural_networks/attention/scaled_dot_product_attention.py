@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict
 
 import numpy as np
 import torch as pt
@@ -9,35 +9,9 @@ from neural_networks.backend import ARRAY_TYPE, get_backend
 
 
 class ScaledDotProductAttention:
-    def __init__(
-        self,
-        d_model: int,
-        dim_k: int,
-        dim_v: int,
-        dim_q: Optional[int] = None,
-    ) -> None:
-        self.proj_layer: Dict[str, Projection] = {}
 
-        self.d_model: int = d_model
-        _, backend_module = get_backend()
-        if backend_module == "pt":
-            self.d_model: ARRAY_TYPE = pt.tensor(d_model)
-            if dim_q is not None:
-                self.dim_q: ARRAY_TYPE = pt.tensor(dim_q)
-            self.dim_k: ARRAY_TYPE = pt.tensor(dim_k)
-            self.dim_v: ARRAY_TYPE = pt.tensor(dim_v)
-        elif backend_module == "np":
-            self.d_model: ARRAY_TYPE = np.array(d_model, dtype=np.int32)
-            if dim_q is not None:
-                self.dim_q: ARRAY_TYPE = np.array(dim_q, dtype=np.int32)
-            self.dim_k: ARRAY_TYPE = np.array(dim_k, dtype=np.int32)
-            self.dim_v: ARRAY_TYPE = np.array(dim_v, dtype=np.int32)
-
-        self.parameter_dims: List[int] = [
-            dim_q if hasattr(self, "dim_q") else d_model,
-            dim_k,
-            dim_v,
-        ]
+    proj_layer: Dict[str, Projection] = {}
+    dim_k = None
 
     def forward(self, q_proj, k_proj, v_proj):
         """
@@ -53,7 +27,7 @@ class ScaledDotProductAttention:
         K Shape : (batch_size, seq_len, dim_k)
         V Shape : (batch_size, seq_len, dim_v)
         """
-        backend, _ = get_backend()
+        backend, backend_module = get_backend()
         # Compute attention scores
         #  K.transpose(-1, -2) Shape : (batch_size, dim_k, seq_len)
         attention_scores = backend.matmul(
@@ -65,10 +39,14 @@ class ScaledDotProductAttention:
         # small gradients. To counteract this effect, we scale the dot products
         # by 1/√dim_k
         #  - Attention is all you need
+        self.dim_k = self.projections["key"].shape[-1]
+        if backend_module == "pt":
+            self.dim_k: ARRAY_TYPE = pt.tensor(self.dim_k)
+        elif backend_module == "np":
+            self.dim_k: ARRAY_TYPE = np.array(self.dim_k, dtype=np.int32)
         attention_scores /= backend.sqrt(self.dim_k)
-        # print("Cust Attention Scores", attention_scores.shape, attention_scores)
         # attention_scores Shape : (batch_size, seq_len, seq_len)
-
+        # print(attention_scores)
         # Apply softmax to get attention weights
         batch_dim, seq_len_dim, _ = attention_scores.shape
         attention_scores = attention_scores.reshape(
@@ -81,9 +59,11 @@ class ScaledDotProductAttention:
         self.softmax_attn = softmax_attn.reshape(
             (batch_dim, seq_len_dim, seq_len_dim)
         )
+        # print("softmax_attn", softmax_attn)
         self.attention = backend.matmul(
             self.softmax_attn, self.projections["value"]
         )
+        # print("attention", self.attention)
         # Shape of attention: (batch_size, seq_len, dim_v)
         return self.attention
 
