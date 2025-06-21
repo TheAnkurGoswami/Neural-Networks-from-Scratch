@@ -209,7 +209,7 @@ class Softmax(Activation):
         super().__init__()
         self.clip = Clip(1e-07, 1.0 - 1e-07)
 
-    def forward(self, inputs: ARRAY_TYPE)  -> ARRAY_TYPE:
+    def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         Performs the forward pass of the activation function.
         This method computes the activation values using the softmax function:

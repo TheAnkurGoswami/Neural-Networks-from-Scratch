@@ -10,6 +10,7 @@ backend_module = "pt"
 backend = np if backend_module == "np" else pt
 ARRAY_TYPE = Union[np.typing.NDArray, pt.Tensor]
 
+
 class Dense:
     def __init__(
         self,

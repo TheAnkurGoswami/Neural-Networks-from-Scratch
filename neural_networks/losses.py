@@ -8,6 +8,7 @@ backend = np if backend_module == "np" else pt
 ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
 NUMERIC_TYPE = Union[float, int, np.number, pt.Tensor]
 
+
 class Loss:
     def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
         """
@@ -102,7 +103,8 @@ class RMSELoss(Loss):
             y_true = np.array(y_true, dtype=np.float32)
         self._y_true = y_true
         self._y_pred = y_pred
-        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
+        eps = 1e-16
+        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2) + eps)
         assert self._loss is not None
         return self._loss
 
