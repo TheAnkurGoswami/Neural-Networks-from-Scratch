@@ -88,14 +88,11 @@ class SGD(Optimizer):
             history = self._initialize_history(derivative)
 
         # Update the accumulated gradient with the current gradient
-        accum_grad = (
-            self._momentum * history["accum_grad"]
-            + self._learning_rate * derivative
-        )
+        accum_grad = self._momentum * history["accum_grad"] + derivative
 
         # Store the updated accumulated gradient in history
         new_history = {"accum_grad": accum_grad}
-        return accum_grad, new_history
+        return self._learning_rate * accum_grad, new_history
 
 
 class RMSProp(Optimizer):

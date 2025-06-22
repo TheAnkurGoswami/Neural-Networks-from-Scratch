@@ -214,7 +214,6 @@ def test_n_hidden_layer_simple_nn(
         # Train the PyTorch neural network
         feed_in = x_torch
         for idx in range(n_layers):
-            optimizer_torch.zero_grad()
             output = (
                 torch.matmul(feed_in, torch_weights_list[idx])
                 + torch_biases_list[idx]
@@ -226,6 +225,7 @@ def test_n_hidden_layer_simple_nn(
         loss_torch_fn = torch.sqrt(loss_torch(output, y_torch))
         loss_torch_fn.backward()
         optimizer_torch.step()
+        optimizer_torch.zero_grad()
 
         # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):

@@ -41,11 +41,10 @@ class Projection(Dense):
         backend, _ = get_backend()
         dW = backend.matmul(self._inputs.transpose(-1, -2), dZ)
         dW = backend.sum(dW, axis=0)
+        dX = backend.matmul(dZ, self._weights.T)
         # print("dW", dW)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         self._weights -= dw_change
-
-        dX = backend.matmul(dZ, self._weights.T)
 
         if self.add_bias:
             dB = backend.sum(dZ, axis=0, keepdims=True)

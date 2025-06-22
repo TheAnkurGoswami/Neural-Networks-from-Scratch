@@ -117,8 +117,8 @@ class Dense:
             dW = dW.sum(axis=0)
         # print("dW", dW)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
-        self._weights -= dw_change
         dX = backend.matmul(dZ, self._weights.T)
+        self._weights -= dw_change
 
         if self.add_bias:
             if backend_module == "pt":
