@@ -112,8 +112,8 @@ class Dense:
         dZ = self._activation.backprop(dA)
         dW = backend.matmul(self._inputs.T, dZ)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
-        self._weights -= dw_change
         dX = backend.matmul(dZ, self._weights.T)
+        self._weights -= dw_change
 
         if self.add_bias:
             if backend_module == "pt":
