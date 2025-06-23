@@ -5,6 +5,7 @@ import numpy as np
 import torch as pt
 
 ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
+NUMERIC_TYPE = Union[float, int, np.number, pt.Tensor]
 
 
 def get_backend():
