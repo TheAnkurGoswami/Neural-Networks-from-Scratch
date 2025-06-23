@@ -249,7 +249,7 @@ class Adam(Optimizer):
         # Retrieve previous first and second moment estimates from history
         first_moment_t_prev = history["first_moment_t"]
         second_moment_t_prev = history["second_moment_t"]
-        backend, backend_module = get_backend()
+        backend, _ = get_backend()
 
         # Update biased first moment estimate
         first_moment_t = (
@@ -281,17 +281,11 @@ class Adam(Optimizer):
         - May use same for RMSProp later.
         """
         # Compute bias-corrected first moment estimate
-        if backend_module == "pt":
-            first_mom_corr = 1 - pt.pow(pt.tensor(self._beta1), epoch)
-        elif backend_module == "np":
-            first_mom_corr = 1 - np.power(self._beta1, epoch)
+        first_mom_corr = 1 - self._beta1**epoch
         corrected_first_moment_t = first_moment_t / first_mom_corr
 
         # Compute bias-corrected second raw moment estimate
-        if backend_module == "pt":
-            second_mom_corr = 1 - pt.pow(pt.tensor(self._beta2), epoch)
-        elif backend_module == "np":
-            second_mom_corr = 1 - np.power(self._beta2, epoch)
+        second_mom_corr = 1 - self._beta2**epoch
         corrected_second_moment_t = second_moment_t / second_mom_corr
 
         # Compute the denominator for the update rule

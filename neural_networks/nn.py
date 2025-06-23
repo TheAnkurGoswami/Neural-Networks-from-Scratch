@@ -110,7 +110,7 @@ class Dense:
         assert self._inputs is not None
         backend, backend_module = get_backend()
         dZ = self._activation.backprop(dA)
-        dW = backend.matmul(self._inputs.T, dZ)
+        dW = backend.matmul(self._inputs.transpose(-1, -2), dZ)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         dX = backend.matmul(dZ, self._weights.T)
         self._weights -= dw_change
