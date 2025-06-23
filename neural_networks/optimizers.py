@@ -1,8 +1,5 @@
 from typing import Dict, Optional, Tuple, Type
 
-import numpy as np
-import torch as pt
-
 from neural_networks.backend import ARRAY_TYPE, get_backend
 
 
