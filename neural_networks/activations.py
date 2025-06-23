@@ -241,7 +241,8 @@ class Softmax(Activation):
         num = backend.exp(inputs)
         denom = backend.sum(num, dim=self.dim, keepdim=True)
         self._activation = num / denom
-        self._activation = self.clip.forward(self._activation)
+        if self.do_clip:
+            self._activation = self.clip.forward(self._activation)
         # return clipped_activation
         return self._activation
 
@@ -301,7 +302,8 @@ class Softmax(Activation):
         backend, _ = get_backend()
         jac_mat = self.derivative()
         dZ_arr = []
-        dA = self.clip.backprop(dA)
+        if self.do_clip:
+            dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
                 dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]
