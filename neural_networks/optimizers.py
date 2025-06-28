@@ -246,7 +246,8 @@ class Adam(Optimizer):
         # Retrieve previous first and second moment estimates from history
         first_moment_t_prev = history["first_moment_t"]
         second_moment_t_prev = history["second_moment_t"]
-        backend, backend_module = get_backend()
+
+        backend, _ = get_backend()
 
         # Update biased first moment estimate
         first_moment_t = (

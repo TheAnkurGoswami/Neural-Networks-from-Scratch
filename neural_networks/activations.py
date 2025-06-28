@@ -205,10 +205,10 @@ class Tanh(Activation):
 
 
 class Softmax(Activation):
-    def __init__(self, dim=1, do_clip=True) -> None:
+    def __init__(self, dim=1, do_clip: bool = True) -> None:
         super().__init__()
         self.do_clip = do_clip
-        if self.do_clip:
+        if do_clip:
             self.clip = Clip(1e-07, 1.0 - 1e-07)
         self.dim = dim
 
@@ -234,12 +234,12 @@ class Softmax(Activation):
             assert isinstance(
                 inputs, np.ndarray
             ), "Inputs must be a NumPy array"
-            inputs = inputs - np.max(inputs, axis=1, keepdims=True)
+            inputs = inputs - np.max(inputs, axis=self.dim, keepdims=True)
         elif backend_module == "pt":
             assert isinstance(
                 inputs, pt.Tensor
             ), "Inputs must be a PyTorch tensor"
-            inputs = inputs - pt.max(inputs, dim=1, keepdim=True).values
+            inputs = inputs - pt.max(inputs, dim=self.dim, keepdim=True).values
         num = backend.exp(inputs)
         denom = backend.sum(num, dim=self.dim, keepdim=True)
         self._activation = num / denom

@@ -90,7 +90,6 @@ class Dense:
         result = backend.matmul(self._inputs, self._weights)
         if self.add_bias:
             result += self._bias
-        # print(self._inputs, self._weights, self._bias)
         activation = self._activation.forward(result)
         return activation
 
@@ -128,6 +127,7 @@ class Dense:
             if dB.ndim == 3:
                 dB = dB.sum(axis=1)
             # print("dB", dB)
+
             db_change, self._db_history = optimizer.optimize(
                 self._db_history, dB
             )
