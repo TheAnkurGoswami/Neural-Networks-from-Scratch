@@ -205,9 +205,11 @@ class Tanh(Activation):
 
 
 class Softmax(Activation):
-    def __init__(self, dim=1) -> None:
+    def __init__(self, dim=1, do_clip: bool = True) -> None:
         super().__init__()
-        self.clip = Clip(1e-07, 1.0 - 1e-07)
+        self.do_clip = do_clip
+        if do_clip:
+            self.clip = Clip(1e-07, 1.0 - 1e-07)
         self.dim = dim
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
