@@ -1,11 +1,11 @@
 from typing import Union
 
 import numpy as np
-from tensorflow import Tensor as TF_Tensor
-from torch import Tensor as PT_Tensor
+import tensorflow as tf
+import torch as pt
 
 # Define a type alias for various number types
-NUMBER_TYPE = Union[np.ndarray, float, int, PT_Tensor, TF_Tensor]
+NUMBER_TYPE = Union[np.ndarray, float, int, pt.Tensor, tf.Tensor]
 
 
 def check_closeness(

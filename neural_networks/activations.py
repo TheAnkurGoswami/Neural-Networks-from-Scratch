@@ -1,13 +1,10 @@
-from typing import Optional, Type, Union
+from typing import Optional, Type
 
 import numpy as np
 import torch as pt
 
+from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.clip import Clip
-
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
 
 
 class Activation:
@@ -16,6 +13,7 @@ class Activation:
     """
 
     def __init__(self) -> None:
+        _, backend_module = get_backend()
         self._input: ARRAY_TYPE = (
             np.array([]) if backend_module == "np" else pt.tensor([])
         )
@@ -34,6 +32,7 @@ class Activation:
             np.ndarray: Output after applying the activation function.
         """
         self._input = inputs
+        backend, _ = get_backend()
         # Below statement does nothing, just for the type matching
         self._activation = backend.zeros_like(inputs)
         return self._activation
@@ -93,7 +92,7 @@ class Identity(Activation):
             np.ndarray: An array of ones with the same shape as the input,
             representing the derivative of the activation function.
         """
-
+        backend, _ = get_backend()
         return backend.ones_like(self._input)
 
 
@@ -120,6 +119,7 @@ class ReLU(Activation):
         """
 
         super().forward(inputs)
+        backend, _ = get_backend()
         return backend.where(inputs > 0, inputs, 0)
 
     def derivative(self) -> ARRAY_TYPE:
@@ -133,7 +133,7 @@ class ReLU(Activation):
             np.ndarray: An array containing the derivative values for the
             input.
         """
-
+        backend, _ = get_backend()
         return backend.where(self._input > 0, 1, 0)
 
 
@@ -155,7 +155,7 @@ class Sigmoid(Activation):
             np.ndarray: The output of the sigmoid activation function applied
             to the input.
         """
-
+        backend, _ = get_backend()
         self._activation = 1 / (1 + backend.exp(-1 * inputs))
         return self._activation
 
@@ -188,7 +188,7 @@ class Tanh(Activation):
         Returns:
             np.ndarray: The output after applying the tanh activation function.
         """
-
+        backend, _ = get_backend()
         self._activation = backend.tanh(inputs)
         return self._activation
 
@@ -200,14 +200,17 @@ class Tanh(Activation):
         Returns:
             np.ndarray: The derivative of the activation function.
         """
-
+        backend, _ = get_backend()
         return 1 - backend.square(self._activation)
 
 
 class Softmax(Activation):
-    def __init__(self) -> None:
+    def __init__(self, dim=1, do_clip: bool = True) -> None:
         super().__init__()
-        self.clip = Clip(1e-07, 1.0 - 1e-07)
+        self.do_clip = do_clip
+        if do_clip:
+            self.clip = Clip(1e-07, 1.0 - 1e-07)
+        self.dim = dim
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         """
@@ -224,21 +227,24 @@ class Softmax(Activation):
             probability distribution.
         """
 
+        backend, backend_module = get_backend()
+
         # Stabilize exponent calculation
         if backend_module == "np":
             assert isinstance(
                 inputs, np.ndarray
             ), "Inputs must be a NumPy array"
-            inputs = inputs - np.max(inputs, axis=1, keepdims=True)
+            inputs = inputs - np.max(inputs, axis=self.dim, keepdims=True)
         elif backend_module == "pt":
             assert isinstance(
                 inputs, pt.Tensor
             ), "Inputs must be a PyTorch tensor"
-            inputs = inputs - pt.max(inputs, dim=1, keepdim=True).values
+            inputs = inputs - pt.max(inputs, dim=self.dim, keepdim=True).values
         num = backend.exp(inputs)
-        denom = backend.sum(num, dim=1, keepdim=True)
+        denom = backend.sum(num, dim=self.dim, keepdim=True)
         self._activation = num / denom
-        self._activation = self.clip.forward(self._activation)
+        if self.do_clip:
+            self._activation = self.clip.forward(self._activation)
         # return clipped_activation
         return self._activation
 
@@ -272,6 +278,7 @@ class Softmax(Activation):
             number of elements in the activation output.
         """
         batch_size, num_classes = self._activation.shape
+        backend, _ = get_backend()
         jacobian_mat = backend.zeros(batch_size, num_classes, num_classes)
         for batch_idx in range(batch_size):
             for row_idx in range(num_classes):
@@ -294,9 +301,11 @@ class Softmax(Activation):
         """
         dA = dL/da = dY_hat
         """
+        backend, _ = get_backend()
         jac_mat = self.derivative()
         dZ_arr = []
-        dA = self.clip.backprop(dA)
+        if self.do_clip:
+            dA = self.clip.backprop(dA)
         for batch_idx in range(jac_mat.shape[0]):
             dZ = backend.matmul(
                 dA[batch_idx : batch_idx + 1, :], jac_mat[batch_idx]

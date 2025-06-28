@@ -1,11 +1,9 @@
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 import torch as pt
 
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
+from neural_networks.backend import ARRAY_TYPE, get_backend
 
 
 class Clip:
@@ -23,6 +21,7 @@ class Clip:
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         self._inputs = inputs
+        backend, backend_module = get_backend()
         if backend_module == "pt":
             return backend.clamp(
                 inputs, 1e-07, 1.0 - 1e-07
@@ -42,6 +41,7 @@ class Clip:
             - ARRAY_TYPE: Gradient of the loss with respect to the inputs.
         """
         assert self._inputs is not None
+        _, backend_module = get_backend()
         if backend_module == "pt":
             assert isinstance(dA, pt.Tensor), "dA must be a PyTorch tensor"
             assert isinstance(

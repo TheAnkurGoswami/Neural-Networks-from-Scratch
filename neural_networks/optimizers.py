@@ -1,11 +1,6 @@
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type
 
-import numpy as np
-import torch as pt
-
-backend_module = "pt"
-backend = np if backend_module == "np" else pt
-ARRAY_TYPE = Union[np.ndarray, pt.Tensor]
+from neural_networks.backend import ARRAY_TYPE, get_backend
 
 
 class Optimizer:
@@ -64,6 +59,7 @@ class SGD(Optimizer):
         """
         Initializes the history for the SGD optimizer.
         """
+        backend, _ = get_backend()
         return {"accum_grad": backend.zeros_like(parameter)}
 
     def optimize(
@@ -89,14 +85,11 @@ class SGD(Optimizer):
             history = self._initialize_history(derivative)
 
         # Update the accumulated gradient with the current gradient
-        accum_grad = (
-            self._momentum * history["accum_grad"]
-            + self._learning_rate * derivative
-        )
+        accum_grad = self._momentum * history["accum_grad"] + derivative
 
         # Store the updated accumulated gradient in history
         new_history = {"accum_grad": accum_grad}
-        return accum_grad, new_history
+        return self._learning_rate * accum_grad, new_history
 
 
 class RMSProp(Optimizer):
@@ -131,6 +124,7 @@ class RMSProp(Optimizer):
         """
         Initializes the history for the RMSProp optimizer.
         """
+        backend, _ = get_backend()
         return {"accum_sq_grad": backend.zeros_like(parameter)}
 
     def optimize(
@@ -154,6 +148,8 @@ class RMSProp(Optimizer):
         # Initialize history if it's None
         if history is None:
             history = self._initialize_history(derivative)
+
+        backend, _ = get_backend()
 
         # Update the accumulated squared gradient with the current gradient
         accum_sq_grad = self._rho * history["accum_sq_grad"] + (
@@ -216,6 +212,7 @@ class Adam(Optimizer):
         """
         Initializes the history for the Adam optimizer.
         """
+        backend, _ = get_backend()
         return {
             "first_moment_t": backend.zeros_like(parameter),
             "second_moment_t": backend.zeros_like(parameter),
@@ -249,28 +246,43 @@ class Adam(Optimizer):
         # Retrieve previous first and second moment estimates from history
         first_moment_t_prev = history["first_moment_t"]
         second_moment_t_prev = history["second_moment_t"]
+        backend, _ = get_backend()
 
         # Update biased first moment estimate
         first_moment_t = (
             self._beta1 * first_moment_t_prev + (1 - self._beta1) * derivative
         )
         # Update biased second raw moment estimate
-        second_moment_t = self._beta2 * second_moment_t_prev + (
-            1 - self._beta2
-        ) * backend.square(derivative)
+        second_moment_t = (
+            self._beta2 * second_moment_t_prev
+            + (1 - self._beta2) * derivative * derivative
+        )
+        """
+        Instead of using derivative * derivative, we could have used
+        backend.square(derivative), which is essentially the same.
+        However, there could be three ways of doing it:
+            a. (1 - beta2) * backend.square(derivative)
+            c. (1 - beta2) * (derivative * derivative)
+            b. (1 - beta2) * derivative * derivative
 
+        In a. & b., we are squaring the derivative first and then
+        multiplying it by (1 - beta2). In b., we are multiplying
+        (1 - beta2) with the derivative first and then again multiplying
+        it with the derivative.
+
+        They all should yield the same result, but since we are using floating
+        point arithmetic, there could be slight differences in the results.
+        For consistency(with frameworks), we are using the second approach (c)
+        here.
+
+        - May use same for RMSProp later.
+        """
         # Compute bias-corrected first moment estimate
-        if backend_module == "pt":
-            first_mom_corr = 1 - pt.pow(pt.tensor(self._beta1), epoch)
-        elif backend_module == "np":
-            first_mom_corr = 1 - np.power(self._beta1, epoch)
+        first_mom_corr = 1 - self._beta1**epoch
         corrected_first_moment_t = first_moment_t / first_mom_corr
 
         # Compute bias-corrected second raw moment estimate
-        if backend_module == "pt":
-            second_mom_corr = 1 - pt.pow(pt.tensor(self._beta2), epoch)
-        elif backend_module == "np":
-            second_mom_corr = 1 - np.power(self._beta2, epoch)
+        second_mom_corr = 1 - self._beta2**epoch
         corrected_second_moment_t = second_moment_t / second_mom_corr
 
         # Compute the denominator for the update rule
