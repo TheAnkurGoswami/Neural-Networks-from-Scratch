@@ -168,7 +168,7 @@ class RMSELossV2(Loss):
             self._size = y_true.size
         self._y_true = y_true
         self._y_pred = y_pred
-        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2) + eps)
+        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
         assert self._loss is not None
         return self._loss
 
