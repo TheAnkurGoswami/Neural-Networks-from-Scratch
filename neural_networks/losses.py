@@ -52,7 +52,10 @@ class MSELoss(Loss):
         """
         backend, backend_module = get_backend()
         if backend_module == "pt":
-            y_true = pt.tensor(y_true, dtype=pt.float32)
+            if isinstance(y_true, pt.Tensor):
+                y_true = y_true.float()
+            else:
+                y_true = pt.tensor(y_true, dtype=pt.float32)
             self._size = y_true.numel()
         elif backend_module == "np":
             y_true = np.array(y_true, dtype=np.float32)
@@ -84,7 +87,55 @@ class MSELoss(Loss):
         """
 
 
-class RMSELoss(Loss):
+class RMSELoss(MSELoss):
+    def __init__(self) -> None:
+        """
+        Initializes the RMSELoss class.
+        """
+        self._y_true: Optional[ARRAY_TYPE] = None
+        self._y_pred: Optional[ARRAY_TYPE] = None
+        self._loss: Optional[ARRAY_TYPE] = None
+
+    def forward(self, y_pred: ARRAY_TYPE, y_true: ARRAY_TYPE) -> NUMERIC_TYPE:
+        """
+        Computes the Root Mean Squared Error (RMSE) loss.
+        Formula for RMSE loss: sqrt((1/n) * Σ(y_pred - y_true)^2)
+            => sqrt(MSE)
+
+        Args:
+            y_pred (ARRAY_TYPE): Predicted values.
+            y_true (ARRAY_TYPE): True values.
+
+        Returns:
+            ARRAY_TYPE: Computed RMSE loss.
+        """
+        backend, _ = get_backend()
+        mse_loss = super().forward(y_pred, y_true)
+        eps = 0
+        self._loss = backend.sqrt(mse_loss + eps)
+        assert self._loss is not None
+        return self._loss
+
+    def backprop(self) -> ARRAY_TYPE:
+        """
+        Computes the gradient of the RMSE loss with respect to the predictions.
+
+        The gradient is computed as:
+        ∂L/∂y_pred = (1 / (2 * sqrt(MSE))) * ∂(MSE)/∂y_pred
+            => (1 / (2 * RMSE)) * ∂MSE/∂y_pred
+            # => (-1 / (2 * sqrt(MSE))) *
+
+        Returns:
+            ARRAY_TYPE: Gradient of the RMSE loss.
+        """
+        assert self._y_pred is not None
+        assert self._y_true is not None
+        assert self._loss is not None
+        mse_backprop = super().backprop()
+        return (1 / (2 * self._loss)) * mse_backprop
+
+
+class RMSELossV2(Loss):
     def __init__(self) -> None:
         """
         Initializes the RMSELoss class.
@@ -117,8 +168,7 @@ class RMSELoss(Loss):
             self._size = y_true.size
         self._y_true = y_true
         self._y_pred = y_pred
-        eps = 1e-16
-        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2) + eps)
+        self._loss = backend.sqrt(backend.mean((y_pred - y_true) ** 2))
         assert self._loss is not None
         return self._loss
 
@@ -135,7 +185,10 @@ class RMSELoss(Loss):
         assert self._y_pred is not None
         assert self._y_true is not None
         assert self._loss is not None
-        return (self._y_pred - self._y_true) / (self._size * self._loss)
+        eps = 1e-16  # Small epsilon for numerical stability
+        return (self._y_pred - self._y_true) / (
+            self._size * (self._loss + eps)
+        )
 
 
 class CrossEntropyLoss(Loss):
