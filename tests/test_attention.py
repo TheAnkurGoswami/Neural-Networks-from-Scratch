@@ -2,7 +2,8 @@ from typing import Dict
 
 import numpy as np
 import pytest
-import tensorflow as tf
+
+# import tensorflow as tf
 import torch
 
 from neural_networks.attention.multihead_attention import MultiHeadAttention
@@ -46,8 +47,8 @@ def test_scaled_dot_product_attention(add_bias: bool):
     x_torch = torch.tensor(x.astype(np.float32))
     y_torch = torch.tensor(y.astype(np.float32))
     # Convert input to TensorFlow tensor
-    x_tf = tf.constant(x.astype(np.float32))
-    y_tf = tf.constant(y.astype(np.float32))
+    # x_tf = tf.constant(x.astype(np.float32))
+    # y_tf = tf.constant(y.astype(np.float32))
 
     proj_layer: Dict[str, Projection] = {}
 
@@ -117,6 +118,7 @@ def test_scaled_dot_product_attention(add_bias: bool):
     output_pt = sdpa_pt.forward(x_torch)
     output_pt.retain_grad()
     cost_pt = torch.sqrt(loss_torch(output_pt, y_torch))
+    # print("cost", cost_cus, cost_pt)
 
     # with tf.GradientTape() as tape:
     #     output_tf = sdpa_tf.forward(x_tf)
@@ -124,37 +126,43 @@ def test_scaled_dot_product_attention(add_bias: bool):
 
     # Backward pass and optimization
     dL = loss.backprop()
-    print("dL", dL)
+    # print("dL", dL)
     optimizer.set_cur_epoch(1)
     dQ_cus, dK_cus, dV_cus = sdpa_cus.backprop(dL)
 
     for param, dZ_cus in zip(
         ["query", "key", "value"], [dQ_cus, dK_cus, dV_cus], strict=False
     ):
+        print("cus", param, dZ_cus)
         proj_layer[param].backprop(dZ_cus, optimizer)
 
     cost_pt.backward()
-    print("output pt grad", output_pt.grad)
+    # print("output pt grad", output_pt.grad)
     optimizer_torch.step()
-    # print("pt", sdpa_pt.scores.grad)
-    # if add_bias:
-    #     for param, dZ_cus in zip(
-    #         ["query", "key", "value"],
-    #     [sdpa_pt.queries, sdpa_pt.keys, sdpa_pt.values], strict=False
-    #     ):
-    #         print("pt", param, dZ_cus.grad)
+    # print("pt attention_weights", sdpa_pt.attention_weights.grad)
+    # print("pt attn scores", sdpa_pt.scores.grad)
+    # print("pt attn scores scaled", sdpa_pt.scores_scaled.grad)
+    if add_bias:
+        for param, dZ_cus in zip(
+            ["query", "key", "value"],
+            [sdpa_pt.queries, sdpa_pt.keys, sdpa_pt.values],
+            strict=False,
+        ):
+            print("pt", param, dZ_cus.grad)
 
-    #     for param, dZ_cus in zip(
-    #         ["query", "key", "value"],
-    #     [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value], strict=False
-    #     ):
-    #         print("pt dW", param, dZ_cus.grad)
+        for param, dZ_cus in zip(
+            ["query", "key", "value"],
+            [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
+            strict=False,
+        ):
+            print("pt dW", param, dZ_cus.grad)
 
-    #     for param, dZ_cus in zip(
-    #         ["query", "key", "value"],
-    #     [sdpa_pt.b_query, sdpa_pt.b_key, sdpa_pt.b_value], strict=False
-    #     ):
-    #         print("pt dB", param, dZ_cus.grad)
+        for param, dZ_cus in zip(
+            ["query", "key", "value"],
+            [sdpa_pt.b_query, sdpa_pt.b_key, sdpa_pt.b_value],
+            strict=False,
+        ):
+            print("pt dB", param, dZ_cus.grad)
 
     optimizer_torch.zero_grad()
 
@@ -195,10 +203,12 @@ def test_scaled_dot_product_attention(add_bias: bool):
             strict=False,
         ):
             print(
-                key, '>',
+                key,
+                ">",
                 proj_layer[key]._bias.detach().numpy(),
                 # b_tf.numpy(),
-                b_pt.detach().numpy())
+                b_pt.detach().numpy(),
+            )
             # assert check_closeness(
             #     proj_layer[key]._bias.detach().numpy(), b_tf.numpy()
             # ), f"{get_bias_template('tf')}"
@@ -228,140 +238,146 @@ def test_scaled_dot_product_attention(add_bias: bool):
 
 
 # TODO: batch_size = 1
-# @pytest.mark.parametrize("batch_size", [2,
-#                                         # 64
-#                                         ])
-# def test_multi_head_attention(batch_size):
-#     d_model = 4
-#     seq_len = 5
-#     dim_kqv = d_model
-#     n_heads = 2
-#     learning_rate = 0.001
+@pytest.mark.parametrize(
+    "batch_size",
+    [
+        2,
+        # 64
+    ],
+)
+def test_multi_head_attention(batch_size):
+    d_model = 4
+    seq_len = 5
+    dim_kqv = d_model
+    n_heads = 2
+    learning_rate = 0.001
 
-#     x = np.random.randint(
-#         low=0, high=10, size=(batch_size, seq_len, d_model)
-#     ).astype(np.float32)
-#     y = np.random.randn(batch_size, seq_len, d_model).astype(np.float32)
+    x = np.random.randint(
+        low=0, high=10, size=(batch_size, seq_len, d_model)
+    ).astype(np.float32)
+    y = np.random.randn(batch_size, seq_len, d_model).astype(np.float32)
 
-#     # Convert input to PyTorch tensor
-#     x_torch = torch.tensor(x.astype(np.float32))
-#     y_torch = torch.tensor(y.astype(np.float32))
+    # Convert input to PyTorch tensor
+    x_torch = torch.tensor(x.astype(np.float32))
+    y_torch = torch.tensor(y.astype(np.float32))
 
-#     mha_cus = MultiHeadAttention(
-#         d_model=d_model,
-#         num_heads=n_heads,
-#         dim_q=dim_kqv,
-#         dim_k=dim_kqv,
-#         dim_v=dim_kqv,
-#     )
-#     all_proj_wt = []
-#     all_proj_bias = []
-#     for projection in mha_cus.proj_layer.values():
-#         all_proj_wt.append(projection._weights.T)
-#         all_proj_bias.append(projection._bias)
+    mha_cus = MultiHeadAttention(
+        d_model=d_model,
+        num_heads=n_heads,
+        dim_q=dim_kqv,
+        dim_k=dim_kqv,
+        dim_v=dim_kqv,
+    )
+    all_proj_wt = []
+    all_proj_bias = []
+    for projection in mha_cus.proj_layer.values():
+        all_proj_wt.append(projection._weights.T)
+        all_proj_bias.append(projection._bias)
 
-#     all_proj_wt = torch.cat(all_proj_wt, dim=0)
-#     all_proj_bias = torch.cat(all_proj_bias, dim=-1)
+    all_proj_wt = torch.cat(all_proj_wt, dim=0)
+    all_proj_bias = torch.cat(all_proj_bias, dim=-1)
 
-#     in_proj_wt = torch.vstack(list(all_proj_wt))
-#     in_proj_bias = torch.hstack(list(all_proj_bias))
+    in_proj_wt = torch.vstack(list(all_proj_wt))
+    in_proj_bias = torch.hstack(list(all_proj_bias))
 
-#     mha_pt = torch.nn.MultiheadAttention(
-#         embed_dim=d_model, num_heads=n_heads, batch_first=True
-#     )
+    mha_pt = torch.nn.MultiheadAttention(
+        embed_dim=d_model, num_heads=n_heads, batch_first=True
+    )
 
-#     mha_pt.in_proj_weight = torch.nn.Parameter(in_proj_wt.detach().clone())
-#     mha_pt.in_proj_bias = torch.nn.Parameter(in_proj_bias.detach().clone())
-#     mha_pt.out_proj.weight = torch.nn.Parameter(
-#         mha_cus.out_proj._weights.T.detach().clone()
-#     )
-#     mha_pt.out_proj.bias = torch.nn.Parameter(
-#         mha_cus.out_proj._bias.detach().clone()
-#     )
-#     output_cus = mha_cus.forward(x_torch)
-#     output_pt, attn_weights = mha_pt.forward(x_torch, x_torch, x_torch, need_weights=True)
-#     attn_weights.retain_grad()
-#     # print("attn_weights", attn_weights)
-#     # print("before", in_proj_wt, mha_pt.in_proj_weight)
-#     # Initialize loss functions and optimizers for each framework
-#     loss = RMSELoss()
-#     loss_torch = torch.nn.MSELoss()
+    mha_pt.in_proj_weight = torch.nn.Parameter(in_proj_wt.detach().clone())
+    mha_pt.in_proj_bias = torch.nn.Parameter(in_proj_bias.detach().clone())
+    mha_pt.out_proj.weight = torch.nn.Parameter(
+        mha_cus.out_proj._weights.T.detach().clone()
+    )
+    mha_pt.out_proj.bias = torch.nn.Parameter(
+        mha_cus.out_proj._bias.detach().clone()
+    )
+    output_cus = mha_cus.forward(x_torch)
+    output_pt, attn_weights = mha_pt.forward(
+        x_torch, x_torch, x_torch, need_weights=True
+    )
+    attn_weights.retain_grad()
+    # print("attn_weights", attn_weights)
+    # print("before", in_proj_wt, mha_pt.in_proj_weight)
+    # Initialize loss functions and optimizers for each framework
+    loss = RMSELoss()
+    loss_torch = torch.nn.MSELoss()
 
-#     optimizer = get_optimizer("adam")(learning_rate=learning_rate)
-#     # pt_training_params = [sdpa_pt.W_key, sdpa_pt.W_query, sdpa_pt.W_value]
+    optimizer = get_optimizer("adam")(learning_rate=learning_rate)
+    # pt_training_params = [sdpa_pt.W_key, sdpa_pt.W_query, sdpa_pt.W_value]
 
-#     optimizer_torch = torch.optim.Adam(
-#         params=mha_pt.parameters(),
-#         lr=learning_rate,
-#     )
+    optimizer_torch = torch.optim.Adam(
+        params=mha_pt.parameters(),
+        lr=learning_rate,
+    )
 
-#     cost_cus = loss.forward(output_cus, y_torch)
-#     output_pt.retain_grad()
-#     cost_pt = torch.sqrt(loss_torch(output_pt, y_torch))
+    cost_cus = loss.forward(output_cus, y_torch)
+    output_pt.retain_grad()
+    cost_pt = torch.sqrt(loss_torch(output_pt, y_torch))
 
-#     # print("cost", cost_cus, cost_pt)
+    # print("cost", cost_cus, cost_pt)
 
-#     # Backward pass and optimization
-#     dL = loss.backprop()
-#     # print("dL", dL)
-#     optimizer.set_cur_epoch(1)
-#     mha_cus.backprop(dL, optimizer)
+    # Backward pass and optimization
+    dL = loss.backprop()
+    # print("dL", dL)
+    optimizer.set_cur_epoch(1)
+    mha_cus.backprop(dL, optimizer)
 
-#     cost_pt.backward()
-#     # print("pt attn weight grad", attn_weights.grad)
-#     # # print("DL", output_pt.grad)
-#     # print("mha_pt.out", mha_pt.out_proj.weight.grad)
-#     # print("mha_pt.out", mha_pt.out_proj.bias.grad)
-#     # print("mha_pt.in_proj_weight", mha_pt.in_proj_weight.grad)
-#     print("mha_pt.in_proj_bias", mha_pt.in_proj_bias.grad)
-#     optimizer_torch.step()
-#     optimizer_torch.zero_grad()
+    cost_pt.backward()
+    # print("pt attn weight grad", attn_weights.grad)
+    # # print("DL", output_pt.grad)
+    # print("mha_pt.out", mha_pt.out_proj.weight.grad)
+    # print("mha_pt.out", mha_pt.out_proj.bias.grad)
+    # print("mha_pt.in_proj_weight", mha_pt.in_proj_weight.grad)
+    print("mha_pt.in_proj_bias", mha_pt.in_proj_bias.grad)
+    optimizer_torch.step()
+    optimizer_torch.zero_grad()
 
-#     # Check closeness of outputs
-#     assert check_closeness(
-#         output_cus.detach().numpy(), output_pt.detach().numpy()
-#     ), f"{get_output_template('pt')}"
+    # Check closeness of outputs
+    assert check_closeness(
+        output_cus.detach().numpy(), output_pt.detach().numpy()
+    ), f"{get_output_template('pt')}"
 
-#     assert check_closeness(
-#         cost_cus.detach().numpy(), cost_pt.item()
-#     ), f"{get_loss_template('pt')}"
-#     # print(output_cus.detach().numpy(), output_pt.detach().numpy())
-#     # print("after", in_proj_wt, mha_pt.in_proj_weight)
-#     # Check closeness of weights
+    assert check_closeness(
+        cost_cus.detach().numpy(), cost_pt.item()
+    ), f"{get_loss_template('pt')}"
+    # print(output_cus.detach().numpy(), output_pt.detach().numpy())
+    # print("after", in_proj_wt, mha_pt.in_proj_weight)
+    # Check closeness of weights
 
-#     all_proj_wt = []
-#     all_proj_bias = []
-#     for projection in mha_cus.proj_layer.values():
-#         all_proj_wt.append(projection._weights.T)
-#         all_proj_bias.append(projection._bias)
+    all_proj_wt = []
+    all_proj_bias = []
+    for projection in mha_cus.proj_layer.values():
+        all_proj_wt.append(projection._weights.T)
+        all_proj_bias.append(projection._bias)
 
-#     all_proj_wt = torch.cat(all_proj_wt, dim=0)
-#     all_proj_bias = torch.cat(all_proj_bias, dim=-1)
+    all_proj_wt = torch.cat(all_proj_wt, dim=0)
+    all_proj_bias = torch.cat(all_proj_bias, dim=-1)
 
-#     in_proj_wt = torch.vstack(list(all_proj_wt))
-#     in_proj_bias = torch.hstack(list(all_proj_bias))
+    in_proj_wt = torch.vstack(list(all_proj_wt))
+    in_proj_bias = torch.hstack(list(all_proj_bias))
 
-#     # print(mha_cus.out_proj._weights.T.detach().clone(),
-#     #     mha_pt.out_proj.weight.detach().numpy(),)
-#     # print(        mha_cus.out_proj._bias.detach().clone(),
-#     #     mha_pt.out_proj.bias.detach().numpy(),)
-#     assert check_closeness(
-#         in_proj_wt.detach().numpy(),
-#         mha_pt.in_proj_weight.detach().numpy(),
-#     ), f"{get_weight_template('pt')}"
-#     # print(in_proj_bias.detach().numpy(),
-#     #     mha_pt.in_proj_bias.detach().numpy(),)
-#     assert check_closeness(
-#         in_proj_bias.detach().numpy(),
-#         mha_pt.in_proj_bias.detach().numpy(),
-#     ), f"{get_bias_template('pt')}"
+    # print(mha_cus.out_proj._weights.T.detach().clone(),
+    #     mha_pt.out_proj.weight.detach().numpy(),)
+    # print(        mha_cus.out_proj._bias.detach().clone(),
+    #     mha_pt.out_proj.bias.detach().numpy(),)
+    assert check_closeness(
+        in_proj_wt.detach().numpy(),
+        mha_pt.in_proj_weight.detach().numpy(),
+    ), f"{get_weight_template('pt')}"
+    # print(in_proj_bias.detach().numpy(),
+    #     mha_pt.in_proj_bias.detach().numpy(),)
+    assert check_closeness(
+        in_proj_bias.detach().numpy(),
+        mha_pt.in_proj_bias.detach().numpy(),
+    ), f"{get_bias_template('pt')}"
 
-#     assert check_closeness(
-#         mha_cus.out_proj._weights.T.detach().clone(),
-#         mha_pt.out_proj.weight.detach().numpy(),
-#     ), f"{get_weight_template('pt')}"
+    assert check_closeness(
+        mha_cus.out_proj._weights.T.detach().clone(),
+        mha_pt.out_proj.weight.detach().numpy(),
+    ), f"{get_weight_template('pt')}"
 
-#     assert check_closeness(
-#         mha_cus.out_proj._bias.detach().clone(),
-#         mha_pt.out_proj.bias.detach().numpy(),
-#     ), f"{get_bias_template('pt')}"
+    assert check_closeness(
+        mha_cus.out_proj._bias.detach().clone(),
+        mha_pt.out_proj.bias.detach().numpy(),
+    ), f"{get_bias_template('pt')}"
