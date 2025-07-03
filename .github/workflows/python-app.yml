@@ -30,18 +30,18 @@ jobs:
       run: |
         make install
 
-    # - name: Install Ruff
-    #   run: |
-    #     pip install ruff
-    # # Update output format to enable automatic inline annotations.
-    # - name: Run Ruff
-    #   run: |
-    #     ruff check --output-format=github .
+    - name: Install Ruff
+      run: |
+        pip install ruff
+    # Update output format to enable automatic inline annotations.
+    - name: Run Ruff
+      run: |
+        ruff check --output-format=github .
 
 
-    # - name: Lint Code (sort requirements)
-    #   run: |
-    #     make lint-requirements
+    - name: Lint Code (sort requirements)
+      run: |
+        make lint-requirements
 
     # - name: Lint Code (type-check)
     #   run: |

@@ -2,7 +2,6 @@ from typing import Dict
 
 import numpy as np
 import pytest
-
 import torch
 
 from neural_networks.attention.projection import Projection
