@@ -249,6 +249,8 @@ class Softmax(Activation):
         return self._activation
 
     def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
+        if self.do_clip:
+            dA = self.clip.backprop(dA)
         act = self._activation
         dot = (dA * act).sum(dim=1, keepdim=True)
         dZ = act * (dA - dot)
