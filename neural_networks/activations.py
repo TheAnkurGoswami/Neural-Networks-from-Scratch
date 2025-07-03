@@ -248,6 +248,14 @@ class Softmax(Activation):
         # return clipped_activation
         return self._activation
 
+    def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
+        if self.do_clip:
+            dA = self.clip.backprop(dA)
+        act = self._activation
+        dot = (dA * act).sum(dim=1, keepdim=True)
+        dZ = act * (dA - dot)
+        return dZ
+
     def derivative(self) -> ARRAY_TYPE:
         r"""
         Computes the Jacobian matrix of the derivative of the activation
@@ -297,7 +305,7 @@ class Softmax(Activation):
                         )
         return jacobian_mat
 
-    def backprop(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
+    def backprop_v2(self, dA: ARRAY_TYPE) -> ARRAY_TYPE:
         """
         dA = dL/da = dY_hat
         """

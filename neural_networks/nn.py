@@ -111,6 +111,8 @@ class Dense:
         backend, backend_module = get_backend()
         dZ = self._activation.backprop(dA)
         dW = backend.matmul(self._inputs.transpose(-1, -2), dZ)
+        if dW.ndim == 3:
+            dW = dW.sum(axis=0)
         dw_change, self._dw_history = optimizer.optimize(self._dw_history, dW)
         dX = backend.matmul(dZ, self._weights.T)
         self._weights -= dw_change
@@ -120,6 +122,9 @@ class Dense:
                 dB = backend.sum(dZ, dim=0, keepdim=True)
             elif backend_module == "np":
                 dB = backend.sum(dZ, axis=0, keepdims=True)
+            if dB.ndim == 3:
+                dB = dB.sum(axis=1)
+
             db_change, self._db_history = optimizer.optimize(
                 self._db_history, dB
             )

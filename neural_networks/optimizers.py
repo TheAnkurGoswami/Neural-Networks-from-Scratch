@@ -198,7 +198,7 @@ class Adam(Optimizer):
         learning_rate: float,
         beta_1: float = 0.9,
         beta_2: float = 0.999,
-        epsilon: float = 1e-07,
+        epsilon: float = 1e-08,
     ) -> None:
         super().__init__()
         self._learning_rate = learning_rate
@@ -246,6 +246,7 @@ class Adam(Optimizer):
         # Retrieve previous first and second moment estimates from history
         first_moment_t_prev = history["first_moment_t"]
         second_moment_t_prev = history["second_moment_t"]
+
         backend, _ = get_backend()
 
         # Update biased first moment estimate
