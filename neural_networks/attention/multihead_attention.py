@@ -94,17 +94,14 @@ class MultiHeadAttention:
 
         self.projections = {}
         for param in self.parameter_dims_map.keys():
-            # print(param)
             self.projections[param] = self.proj_layer[param].forward(inputs)
         all_outputs = []
         for head_ix, head in enumerate(self.attn_heads):
-            # print("head", head_ix)
             output = head.forward(
                 q_proj=self.get_head_projection("query", head_ix),
                 k_proj=self.get_head_projection("key", head_ix),
                 v_proj=self.get_head_projection("value", head_ix),
             )
-            # print(output.shape)
             self.output_head_size = output.shape[-1]
             all_outputs.append(output)
         concatenated_output = pt.cat(all_outputs, dim=-1)
@@ -113,7 +110,6 @@ class MultiHeadAttention:
 
     def backprop(self, dA, optimizer):
         dOut = self.out_proj.backprop(dA, optimizer)
-        # print("dOut", dOut)
         all_dQ = []
         all_dK = []
         all_dV = []
@@ -129,8 +125,6 @@ class MultiHeadAttention:
         all_dQ = pt.cat(all_dQ, dim=-1)
         all_dK = pt.cat(all_dK, dim=-1)
         all_dV = pt.cat(all_dV, dim=-1)
-
-        # print("all_dQ", all_dQ.shape, all_dQ)
 
         self.proj_layer["query"].backprop(all_dQ, optimizer)
         self.proj_layer["key"].backprop(all_dK, optimizer)

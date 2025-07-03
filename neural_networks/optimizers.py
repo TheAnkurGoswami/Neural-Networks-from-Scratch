@@ -291,7 +291,6 @@ class Adam(Optimizer):
 
         # Compute the parameter update
         new_change = (self._learning_rate * corrected_first_moment_t) / denom
-        # print("denom", self._learning_rate, self._beta1, epoch, first_mom_corr, self._learning_rate/first_mom_corr, first_moment_t, denom)
 
         # Store the updated first and second moment estimates in history
         new_history = {

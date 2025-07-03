@@ -46,7 +46,6 @@ class ScaledDotProductAttention:
             self.dim_k: ARRAY_TYPE = np.array(self.dim_k, dtype=np.int32)
         attention_scores /= backend.sqrt(self.dim_k)
         # attention_scores Shape : (batch_size, seq_len, seq_len)
-        # print(attention_scores)
         # Apply softmax to get attention weights
         batch_dim, seq_len_dim, _ = attention_scores.shape
         attention_scores = attention_scores.reshape(
@@ -59,11 +58,9 @@ class ScaledDotProductAttention:
         self.softmax_attn = softmax_attn.reshape(
             (batch_dim, seq_len_dim, seq_len_dim)
         )
-        # print("softmax_attn", softmax_attn)
         self.attention = backend.matmul(
             self.softmax_attn, self.projections["value"]
         )
-        # print("attention", self.attention)
         # Shape of attention: (batch_size, seq_len, dim_v)
         return self.attention
 
