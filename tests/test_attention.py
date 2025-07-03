@@ -142,27 +142,27 @@ def test_scaled_dot_product_attention(add_bias: bool):
     # print("pt attention_weights", sdpa_pt.attention_weights.grad)
     # print("pt attn scores", sdpa_pt.scores.grad)
     # print("pt attn scores scaled", sdpa_pt.scores_scaled.grad)
-    if add_bias:
-        for param, dZ_cus in zip(
-            ["query", "key", "value"],
-            [sdpa_pt.queries, sdpa_pt.keys, sdpa_pt.values],
-            strict=False,
-        ):
-            print("pt", param, dZ_cus.grad)
+    # if add_bias:
+    #     for param, dZ_cus in zip(
+    #         ["query", "key", "value"],
+    #         [sdpa_pt.queries, sdpa_pt.keys, sdpa_pt.values],
+    #         strict=False,
+    #     ):
+    #         print("pt", param, dZ_cus.grad)
 
-        for param, dZ_cus in zip(
-            ["query", "key", "value"],
-            [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
-            strict=False,
-        ):
-            print("pt dW", param, dZ_cus.grad)
+    #     for param, dZ_cus in zip(
+    #         ["query", "key", "value"],
+    #         [sdpa_pt.W_query, sdpa_pt.W_key, sdpa_pt.W_value],
+    #         strict=False,
+    #     ):
+    #         print("pt dW", param, dZ_cus.grad)
 
-        for param, dZ_cus in zip(
-            ["query", "key", "value"],
-            [sdpa_pt.b_query, sdpa_pt.b_key, sdpa_pt.b_value],
-            strict=False,
-        ):
-            print("pt dB", param, dZ_cus.grad)
+    #     for param, dZ_cus in zip(
+    #         ["query", "key", "value"],
+    #         [sdpa_pt.b_query, sdpa_pt.b_key, sdpa_pt.b_value],
+    #         strict=False,
+    #     ):
+    #         print("pt dB", param, dZ_cus.grad)
 
     optimizer_torch.zero_grad()
 
