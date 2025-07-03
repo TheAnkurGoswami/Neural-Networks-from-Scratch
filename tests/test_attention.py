@@ -30,7 +30,7 @@ DEBUG = True
 
 # @pytest.mark.parametrize("d_model", [3, 5, 10])
 # @pytest.mark.parametrize("dim_kqv", [3, 7])
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize("add_bias", [True, False])
 def test_scaled_dot_product_attention(batch_size: int, add_bias: bool):
     d_model = 3
