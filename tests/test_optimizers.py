@@ -5,8 +5,9 @@ import pytest
 import tensorflow as tf
 import torch
 
+from neural_networks.layers import Dense
 from neural_networks.losses import RMSELoss
-from neural_networks.layers import Dense # Updated import
+
 # Import specific optimizers instead of the factory function
 from neural_networks.optimizers import SGD, Adam, RMSProp
 from tests.templates import (
@@ -36,6 +37,7 @@ CUSTOM_OPTIM_MAP = {
     "rmsprop": RMSProp,
     "adam": Adam,
 }
+
 
 @pytest.mark.parametrize(
     "optimizer_str, kwargs",

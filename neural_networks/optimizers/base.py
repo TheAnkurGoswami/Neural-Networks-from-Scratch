@@ -46,7 +46,6 @@ class Optimizer:
         """
         self._epoch = epoch
 
-
     def optimize(
         self, history: Optional[Dict[str, ARRAY_TYPE]], derivative: ARRAY_TYPE
     ) -> Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:

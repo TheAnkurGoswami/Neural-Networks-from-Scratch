@@ -32,7 +32,6 @@ def check_closeness(
     # Check if arrays are element-wise equal within a tolerance
     main_check = np.allclose(a, b)
     clip_const = 1e-06
-    # print(a, b)
     # # Reverse clip values of 'a' if they are of the order of e-07 or lower
     a = np.where(np.abs(a) > clip_const, a, clip_const)
     b = np.where(np.abs(b) > clip_const, b, clip_const)
@@ -133,7 +132,6 @@ class ScaledDotProductAttentionPytorch(pt.nn.Module):
             self.dim_k**0.5
         )
         self.scores.retain_grad()
-        # print("PT Attention Scores", scores.shape, scores)
         # Apply softmax to get attention weights
         self.attention_weights = pt.softmax(self.scores, dim=-1)
         self.attention_weights.retain_grad()

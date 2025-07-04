@@ -29,7 +29,7 @@ class Softmax(Activation):
         if do_clip:
             # Epsilon values for clipping to prevent log(0) or log(1) issues
             # downstream
-            self.clip_fn = Clip(min_val=1e-07,max_val=1.0 - 1e-07)
+            self.clip_fn = Clip(min_val=1e-07, max_val=1.0 - 1e-07)
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         r"""
