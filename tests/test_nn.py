@@ -7,8 +7,8 @@ import tensorflow as tf
 import torch
 
 from neural_networks.losses import CrossEntropyLoss, MSELoss, RMSELoss
-from neural_networks.nn import Dense
-from neural_networks.optimizers import get_optimizer
+from neural_networks.layers import Dense # Updated import
+from neural_networks.optimizers import SGD # Import SGD directly
 from tests.templates import (
     get_bias_template,
     get_loss_template,
@@ -52,7 +52,7 @@ def test_no_hidden_layer_simple_nn(batch_size: int) -> None:
     b_torch = b.clone().detach().requires_grad_(True)
 
     # Initialize optimizers and loss functions for each framework
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0) # Use SGD directly
     loss = MSELoss()
     optimizer_torch = torch.optim.SGD(
         [w_torch, b_torch], lr=learning_rate, momentum=0
@@ -172,7 +172,7 @@ def test_n_hidden_layer_simple_nn(
 
     # Initialize loss functions and optimizers for each framework
     loss = RMSELoss()
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0) # Use SGD directly
     optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
     optimizer_torch = torch.optim.SGD(
         params=[*torch_weights_list, *torch_biases_list], lr=learning_rate
@@ -340,7 +340,7 @@ def test_n_hidden_layer_classification(
 
     # Initialize loss functions and optimizers for each framework
     loss = CrossEntropyLoss()
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0) # Use SGD directly
     optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
     optimizer_torch = torch.optim.SGD(
         params=[*torch_weights_list, *torch_biases_list], lr=learning_rate

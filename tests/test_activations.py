@@ -6,7 +6,7 @@ import tensorflow as tf
 import torch
 
 from neural_networks.losses import RMSELoss
-from neural_networks.nn import Dense
+from neural_networks.layers import Dense # Updated import
 from neural_networks.optimizers import SGD
 from tests.templates import (
     get_bias_template,
