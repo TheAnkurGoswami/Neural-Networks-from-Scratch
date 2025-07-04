@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Tuple
 
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.core.optimizer_base import Optimizer
+from neural_networks.optimizers.base import Optimizer
 
 
 class SGD(Optimizer):
@@ -16,15 +16,19 @@ class SGD(Optimizer):
 
         Args:
             learning_rate (float): The step size for parameter updates.
-            momentum (float, optional): The momentum factor (\(\beta\)). Helps accelerate SGD
-                                         in the relevant direction and dampens oscillations.
-                                         Defaults to 0.0 (no momentum).
+            momentum (float, optional): The momentum factor (\(\beta\)).
+                Helps accelerate SGD in the relevant direction and dampens
+                oscillations. Defaults to 0.0 (no momentum).
         """
         super().__init__()
         if not 0.0 <= learning_rate:
-            raise ValueError(f"Invalid learning rate: {learning_rate}, must be >= 0.")
+            raise ValueError(
+                f"Invalid learning rate: {learning_rate}, must be >= 0."
+            )
         if not 0.0 <= momentum < 1.0:
-            raise ValueError(f"Invalid momentum: {momentum}, must be in [0, 1).")
+            raise ValueError(
+                f"Invalid momentum: {momentum}, must be in [0, 1)."
+            )
 
         self._learning_rate = learning_rate
         self._momentum = momentum
@@ -33,16 +37,17 @@ class SGD(Optimizer):
         self, parameter: ARRAY_TYPE
     ) -> Dict[str, ARRAY_TYPE]:
         """
-        Initializes history for SGD, specifically the accumulated gradient for momentum.
+        Initializes history for SGD, specifically the accumulated gradient for
+        momentum.
 
         Args:
-            parameter (ARRAY_TYPE): The parameter tensor, used to determine the shape
-                                   for the history variable.
+            parameter (ARRAY_TYPE): The parameter tensor, used to determine
+                the shape for the history variable.
 
         Returns:
-            Dict[str, ARRAY_TYPE]: A dictionary containing the initialized accumulated
-                                   gradient ("accum_grad") as a zero tensor of the same
-                                   shape as `parameter`.
+            Dict[str, ARRAY_TYPE]: A dictionary containing the initialized
+                accumulated gradient ("accum_grad") as a zero tensor of the
+                same shape as `parameter`.
         """
         backend, _ = get_backend()
         # 'accum_grad' stores the velocity term v_t for momentum
@@ -55,7 +60,8 @@ class SGD(Optimizer):
         Performs a single optimization step using SGD with optional momentum.
 
         Let \( g_t \) be the derivative (gradient) at timestep \( t \),
-        \( \eta \) be the learning rate, and \( \beta \) be the momentum factor.
+        \( \eta \) be the learning rate, and \( \beta \) be the momentum
+        factor.
 
         If momentum (\( \beta > 0 \)):
         .. math::
@@ -66,18 +72,22 @@ class SGD(Optimizer):
         .. math::
             \text{update_value} = \eta g_t
 
-        The parameter \( \theta \) is then updated as \( \theta_t = \theta_{t-1} - \text{update_value} \).
+        The parameter \( \theta \) is then updated as
+        \( \theta_t = \theta_{t-1} - \text{update_value} \).
 
         Args:
-            history (Optional[Dict[str, ARRAY_TYPE]]): Optimizer history for the parameter.
-                Expected to contain "accum_grad" for momentum. Initialized if None.
-            derivative (ARRAY_TYPE): The gradient of the loss with respect to the parameter
-                                     (\( g_t \)).
+            history (Optional[Dict[str, ARRAY_TYPE]]): Optimizer history for
+                the parameter. Expected to contain "accum_grad" for momentum.
+                Initialized if None.
+            derivative (ARRAY_TYPE): The gradient of the loss w.r.t the
+                parameter (\( g_t \)).
 
         Returns:
             Tuple[ARRAY_TYPE, Dict[str, ARRAY_TYPE]]:
-                - The calculated parameter update value (\( \eta v_t \) or \( \eta g_t \)).
-                - The updated history dictionary with the new "accum_grad" (\( v_t \)).
+                - The calculated parameter update value (\( \eta v_t \) or
+                    \( \eta g_t \)).
+                - The updated history dictionary with the new "accum_grad"
+                    (\( v_t \)).
         """
         if history is None:
             history = self._initialize_history(derivative)
