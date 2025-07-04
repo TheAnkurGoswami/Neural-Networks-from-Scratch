@@ -35,10 +35,10 @@ class Clip:
         Performs the backpropagation step for the Clip layer.
 
         Parameters:
-        - dA (ARRAY_TYPE): Gradient of the loss with respect to the activation.
+        - dA (ARRAY_TYPE): Gradient of the loss w.r.t the activation.
 
         Returns:
-            - ARRAY_TYPE: Gradient of the loss with respect to the inputs.
+            - ARRAY_TYPE: Gradient of the loss w.r.t the inputs.
         """
         assert self._inputs is not None
         _, backend_module = get_backend()

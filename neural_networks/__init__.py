@@ -1,8 +1,4 @@
 # Core components
-from .core.activation_base import Activation
-from .core.loss_base import Loss
-from .core.optimizer_base import Optimizer
-
 # Specific implementations
 from .activations import (
     Identity,
@@ -11,18 +7,7 @@ from .activations import (
     Softmax,
     Tanh,
 )
-from .layers import Dense
-from .losses import (
-    CrossEntropyLoss,
-    MSELoss,
-    RMSELoss,
-    RMSELossV2,
-)
-from .optimizers import (
-    Adam,
-    RMSProp,
-    SGD,
-)
+from .activations.base import Activation
 from .attention import (
     MultiHeadAttention,
     Projection,
@@ -34,8 +19,21 @@ from .backend import (
     ARRAY_TYPE,
     NUMERIC_TYPE,
     get_backend,
-    set_backend,
 )
+from .layers import Dense
+from .losses import (
+    CrossEntropyLoss,
+    MSELoss,
+    RMSELoss,
+    RMSELossV2,
+)
+from .losses.base import Loss
+from .optimizers import (
+    SGD,
+    Adam,
+    RMSProp,
+)
+from .optimizers.base import Optimizer
 
 __all__ = [
     # Core
@@ -67,5 +65,4 @@ __all__ = [
     "ARRAY_TYPE",
     "NUMERIC_TYPE",
     "get_backend",
-    "set_backend",
 ]
