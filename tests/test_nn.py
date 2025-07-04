@@ -6,9 +6,9 @@ import pytest
 import tensorflow as tf
 import torch
 
+from neural_networks.layers import Dense
 from neural_networks.losses import CrossEntropyLoss, MSELoss, RMSELoss
-from neural_networks.nn import Dense
-from neural_networks.optimizers import get_optimizer
+from neural_networks.optimizers import SGD
 from tests.templates import (
     get_bias_template,
     get_loss_template,
@@ -52,7 +52,7 @@ def test_no_hidden_layer_simple_nn(batch_size: int) -> None:
     b_torch = b.clone().detach().requires_grad_(True)
 
     # Initialize optimizers and loss functions for each framework
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0)
     loss = MSELoss()
     optimizer_torch = torch.optim.SGD(
         [w_torch, b_torch], lr=learning_rate, momentum=0
@@ -172,7 +172,7 @@ def test_n_hidden_layer_simple_nn(
 
     # Initialize loss functions and optimizers for each framework
     loss = RMSELoss()
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0)
     optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
     optimizer_torch = torch.optim.SGD(
         params=[*torch_weights_list, *torch_biases_list], lr=learning_rate
@@ -229,7 +229,6 @@ def test_n_hidden_layer_simple_nn(
 
         # Check if the weights, biases, and costs are close across frameworks
         for idx in range(n_layers):
-            # print(dense_layers[idx]._weights, np.array(tf_weights_list[idx]))
             assert check_closeness(
                 dense_layers[idx]._weights.detach().numpy(),
                 tf_weights_list[idx],
@@ -258,8 +257,6 @@ def test_n_hidden_layer_simple_nn(
         assert check_closeness(
             cost_nn.detach().numpy(), loss_torch_fn.item()
         ), f"Epoch: {epoch}, Layer: {idx + 1} - {get_loss_template('pt')}"
-
-        # print("loss", epoch, cost_nn, cost_tf, loss_torch_fn.item())
 
 
 @pytest.mark.parametrize("hidden_layers_size", [[5], [2, 3], [6, 4, 10]])
@@ -340,7 +337,7 @@ def test_n_hidden_layer_classification(
 
     # Initialize loss functions and optimizers for each framework
     loss = CrossEntropyLoss()
-    optimizer = get_optimizer("sgd")(learning_rate=learning_rate, momentum=0)
+    optimizer = SGD(learning_rate=learning_rate, momentum=0)
     optimizer_tf = tf.keras.optimizers.SGD(learning_rate=learning_rate)
     optimizer_torch = torch.optim.SGD(
         params=[*torch_weights_list, *torch_biases_list], lr=learning_rate
@@ -352,7 +349,6 @@ def test_n_hidden_layer_classification(
         for idx in range(n_layers):
             output = dense_layers[idx].forward(inputs=feed_in)
             feed_in = output
-        # print("output", output, yhot)
         cost_nn = loss.forward(y_pred=output, y_true=yhot)
         dL = loss.backprop()
         derivative = dL
@@ -411,7 +407,7 @@ def test_n_hidden_layer_classification(
                 ].retain_grad()  # Retain gradients for non-leaf tensors
             feed_in = output
         loss_torch = torch.nn.CrossEntropyLoss()
-        # # Log to nullify the effect of having Softmax inside CorssEntropyLoss
+        # # Log to nullify the effect of having Softmax inside
         log_probs = torch.log(output)  # Apply log to the softmax output
         loss_torch_fn = loss_torch(log_probs, y_torch)
         loss_torch_fn.retain_grad()  # Retain gradients for non-leaf tensors

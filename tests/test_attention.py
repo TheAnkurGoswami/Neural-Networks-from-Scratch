@@ -4,12 +4,9 @@ import numpy as np
 import pytest
 import torch
 
-from neural_networks.attention.projection import Projection
-from neural_networks.attention.scaled_dot_product_attention import (
-    ScaledDotProductAttention,
-)
+from neural_networks.attention import Projection, ScaledDotProductAttention
 from neural_networks.losses import RMSELoss
-from neural_networks.optimizers import get_optimizer
+from neural_networks.optimizers import Adam
 from tests.templates import (
     get_bias_template,
     get_loss_template,
@@ -70,7 +67,7 @@ def test_scaled_dot_product_attention(batch_size: int, add_bias: bool):
     loss = RMSELoss()
     loss_torch = torch.nn.MSELoss()
 
-    optimizer = get_optimizer("adam")(learning_rate=learning_rate)
+    optimizer = Adam(learning_rate=learning_rate)
     pt_training_params = [sdpa_pt.W_key, sdpa_pt.W_query, sdpa_pt.W_value]
     pt_training_params.extend(
         [sdpa_pt.b_query, sdpa_pt.b_key, sdpa_pt.b_value] if add_bias else []

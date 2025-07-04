@@ -5,9 +5,11 @@ import pytest
 import tensorflow as tf
 import torch
 
+from neural_networks.layers import Dense
 from neural_networks.losses import RMSELoss
-from neural_networks.nn import Dense
-from neural_networks.optimizers import get_optimizer
+
+# Import specific optimizers instead of the factory function
+from neural_networks.optimizers import SGD, Adam, RMSProp
 from tests.templates import (
     get_bias_template,
     get_loss_template,
@@ -27,6 +29,13 @@ TORCH_OPTIM_MAP = {
     "sgd": torch.optim.SGD,
     "rmsprop": torch.optim.RMSprop,
     "adam": torch.optim.Adam,
+}
+
+# Map optimizer strings to our optimizer classes
+CUSTOM_OPTIM_MAP = {
+    "sgd": SGD,
+    "rmsprop": RMSProp,
+    "adam": Adam,
 }
 
 
@@ -71,7 +80,8 @@ def test_optimizer(optimizer_str: str, kwargs: Dict[str, Any]) -> None:
     torch_biases_list = []
 
     # Initialize custom optimizer
-    optimizer = get_optimizer(optimizer_str)(**kwargs)
+    optimizer_class = CUSTOM_OPTIM_MAP[optimizer_str]
+    optimizer = optimizer_class(**kwargs)
 
     # Initialize layers and weights for custom, TensorFlow, and PyTorch
     # implementations
