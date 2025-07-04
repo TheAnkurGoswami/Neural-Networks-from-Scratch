@@ -1,5 +1,5 @@
+from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.core.activation_base import Activation
 
 
 class Tanh(Activation):
@@ -9,7 +9,8 @@ class Tanh(Activation):
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         r"""
-        Performs the forward pass using the hyperbolic tangent (tanh) activation function.
+        Performs the forward pass using the hyperbolic tangent (tanh)
+        activation function.
 
         The tanh activation function is defined as:
         .. math::
@@ -21,7 +22,7 @@ class Tanh(Activation):
         Returns:
             ARRAY_TYPE: The output after applying the tanh activation function.
         """
-        super().forward(inputs) # Stores inputs
+        super().forward(inputs)  # Stores inputs
         backend, _ = get_backend()
         self._activation = backend.tanh(self._input)
         return self._activation
@@ -37,10 +38,12 @@ class Tanh(Activation):
         where \(\text{tanh}(x)\) is the activation value from the forward pass.
 
         Returns:
-            ARRAY_TYPE: The derivative of the tanh function with respect to its input,
+            ARRAY_TYPE: The derivative of the tanh function w.r.t its input,
                         using the stored activation from the forward pass.
         """
         backend, _ = get_backend()
-        if self._activation is None: # self._activation is set in forward pass of base class
+        if (
+            self._activation is None
+        ):  # self._activation is set in forward pass of base class
             raise ValueError("Forward pass must be called before derivative.")
         return 1 - backend.square(self._activation)

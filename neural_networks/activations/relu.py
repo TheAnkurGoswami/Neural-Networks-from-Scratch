@@ -1,5 +1,5 @@
+from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.core.activation_base import Activation
 
 
 class ReLU(Activation):
@@ -9,7 +9,8 @@ class ReLU(Activation):
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         r"""
-        Applies the ReLU (Rectified Linear Unit) activation function to the input data.
+        Applies the ReLU (Rectified Linear Unit) activation function to the
+        input data.
 
         The ReLU function is defined as:
         .. math::
@@ -19,9 +20,10 @@ class ReLU(Activation):
             inputs (ARRAY_TYPE): The input data.
 
         Returns:
-            ARRAY_TYPE: The output data after applying the ReLU activation function.
+            ARRAY_TYPE: The output data after applying the ReLU activation
+                function.
         """
-        super().forward(inputs) # Stores inputs
+        super().forward(inputs)  # Stores inputs
         backend, _ = get_backend()
         self._activation = backend.where(self._input > 0, self._input, 0)
         return self._activation
@@ -32,7 +34,10 @@ class ReLU(Activation):
 
         The derivative of ReLU is:
         .. math::
-            \text{ReLU}'(x) = \begin{cases} 1 & \text{if } x > 0 \\ 0 & \text{if } x \leq 0 \end{cases}
+            \text{ReLU}'(x) = \begin{cases}
+                1 & \text{if } x > 0 \\
+                0 & \text{if } x \leq 0
+            \end{cases}
 
         Returns:
             ARRAY_TYPE: An array containing the derivative values for the input

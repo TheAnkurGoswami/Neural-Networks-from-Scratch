@@ -1,5 +1,5 @@
+from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.core.activation_base import Activation
 
 
 class Sigmoid(Activation):
@@ -21,7 +21,7 @@ class Sigmoid(Activation):
         Returns:
             ARRAY_TYPE: The output of the sigmoid activation function.
         """
-        super().forward(inputs) # Stores inputs
+        super().forward(inputs)  # Stores inputs
         backend, _ = get_backend()
         self._activation = 1 / (1 + backend.exp(-1 * self._input))
         return self._activation
@@ -37,9 +37,11 @@ class Sigmoid(Activation):
         where \(\sigma(x)\) is the activation value from the forward pass.
 
         Returns:
-            ARRAY_TYPE: The derivative of the sigmoid function with respect to its input,
-                        using the stored activation from the forward pass.
+            ARRAY_TYPE: The derivative of the sigmoid function with respect to
+                its input, using the stored activation from the forward pass.
         """
-        if self._activation is None: # self._activation is set in forward pass of base class
+        if (
+            self._activation is None
+        ):  # self._activation is set in forward pass of base class
             raise ValueError("Forward pass must be called before derivative.")
         return self._activation * (1 - self._activation)

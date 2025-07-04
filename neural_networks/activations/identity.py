@@ -1,5 +1,5 @@
+from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
-from neural_networks.core.activation_base import Activation
 
 
 class Identity(Activation):
@@ -20,11 +20,13 @@ class Identity(Activation):
             inputs (ARRAY_TYPE): The input data to the activation function.
 
         Returns:
-            ARRAY_TYPE: The output after applying the activation function (same as input).
+            ARRAY_TYPE: The output after applying the activation function
+                (same as input).
         """
-        # Store inputs for derivative calculation if needed by base class or for debugging
+        # Store inputs for derivative calculation if needed by base class or
+        # for debugging
         super().forward(inputs)
-        self._activation = inputs # Activation output is the input itself
+        self._activation = inputs  # Activation output is the input itself
         return inputs
 
     def derivative(self) -> ARRAY_TYPE:
@@ -36,7 +38,8 @@ class Identity(Activation):
             \frac{d}{dx} \text{Identity}(x) = 1
 
         Returns:
-            ARRAY_TYPE: An array of ones with the same shape as the input stored during the forward pass.
+            ARRAY_TYPE: An array of ones with the same shape as the input
+                stored during the forward pass.
         """
         backend, _ = get_backend()
         if self._input is None:
