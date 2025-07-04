@@ -1,5 +1,6 @@
 from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 
 
 class Identity(Activation):
@@ -43,5 +44,5 @@ class Identity(Activation):
         """
         backend, _ = get_backend()
         if self._input is None:
-            raise ValueError("Forward pass must be called before derivative.")
+            raise ValueError(BACKPROP_WARN)
         return backend.ones_like(self._input)

@@ -6,6 +6,7 @@ from neural_networks.attention.scaled_dot_product_attention import (
     ScaledDotProductAttention,
 )
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 from neural_networks.layers import Dense
 from neural_networks.optimizers.base import Optimizer
 
@@ -258,10 +259,7 @@ class MultiHeadAttention:
                   its own params and propagates to Q,K,V input projections.
         """
         if self.out_proj is None or self.output_head_size is None:
-            raise RuntimeError(
-                "Forward pass must be completed before backprop, or layers not"
-                "initialized."
-            )
+            raise ValueError(BACKPROP_WARN)
         # 1. Backprop through the final output projection (self.out_proj)
         # dA is dL/d(out_proj_output)
         # dOut is dL/d(out_proj_input) = dL/d(Concatenated_heads_output)

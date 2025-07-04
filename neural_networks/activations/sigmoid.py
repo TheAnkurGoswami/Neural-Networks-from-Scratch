@@ -1,5 +1,6 @@
 from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 
 
 class Sigmoid(Activation):
@@ -43,5 +44,5 @@ class Sigmoid(Activation):
         if (
             self._activation is None
         ):  # self._activation is set in forward pass of base class
-            raise ValueError("Forward pass must be called before derivative.")
+            raise ValueError(BACKPROP_WARN)
         return self._activation * (1 - self._activation)

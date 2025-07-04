@@ -9,6 +9,7 @@ from neural_networks.activations import (
 
 # Updated import paths
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 from neural_networks.optimizers.base import Optimizer  # Base class
 
 
@@ -196,7 +197,7 @@ class Dense:
                 (\( dX \)). Shape: (batch_size, in_features).
         """
         if self._inputs is None:
-            raise ValueError("Forward pass must be called before backprop.")
+            raise ValueError(BACKPROP_WARN)
 
         backend, backend_module = get_backend()
 

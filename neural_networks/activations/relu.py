@@ -1,5 +1,6 @@
 from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 
 
 class ReLU(Activation):
@@ -45,5 +46,5 @@ class ReLU(Activation):
         """
         backend, _ = get_backend()
         if self._input is None:
-            raise ValueError("Forward pass must be called before derivative.")
+            raise ValueError(BACKPROP_WARN)
         return backend.where(self._input > 0, 1, 0)

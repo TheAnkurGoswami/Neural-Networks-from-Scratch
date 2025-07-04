@@ -5,6 +5,7 @@ import torch as pt
 
 from neural_networks.activations import Softmax
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 
 
 class ScaledDotProductAttention:
@@ -191,10 +192,7 @@ class ScaledDotProductAttention:
             or self.projections.get("query") is None
             or self.dim_k is None
         ):
-            raise ValueError(
-                "Forward pass must be called before backprop, or attributes"
-                "not set."
-            )
+            raise ValueError(BACKPROP_WARN)
 
         backend, _ = get_backend()
 

@@ -1,6 +1,7 @@
 from typing import Optional
 
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 from neural_networks.layers import Dense  # Updated: Import Dense from layers
 from neural_networks.optimizers.base import (
     Optimizer,
@@ -100,7 +101,7 @@ class Projection(Dense):
                 (\(dX\)).
         """
         if self._inputs is None:
-            raise ValueError("Forward pass must be called before backprop.")
+            raise ValueError(BACKPROP_WARN)
 
         backend, _ = get_backend()
 

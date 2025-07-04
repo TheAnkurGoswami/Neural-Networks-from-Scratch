@@ -4,6 +4,7 @@ import torch as pt
 from neural_networks.activations.base import Activation
 from neural_networks.backend import ARRAY_TYPE, get_backend
 from neural_networks.clip import Clip
+from neural_networks.constants import BACKPROP_WARN
 
 
 class Softmax(Activation):
@@ -133,7 +134,7 @@ class Softmax(Activation):
                 (logits).
         """
         if self._activation is None:
-            raise ValueError("Forward pass must be called before backprop.")
+            raise ValueError(BACKPROP_WARN)
 
         # If clipping was applied in forward, apply its backprop first
         if self.do_clip:
@@ -175,7 +176,7 @@ class Softmax(Activation):
                 Shape: (batch_size, num_classes, num_classes).
         """
         if self._activation is None:
-            raise ValueError("Forward pass must be called before derivative.")
+            raise ValueError(BACKPROP_WARN)
 
         batch_size, num_classes = self._activation.shape
         backend, _ = get_backend()
@@ -206,7 +207,7 @@ class Softmax(Activation):
         dZ = dA @ J (for each sample in batch)
         """
         if self._activation is None:
-            raise ValueError("Forward pass must be called before backprop_v2.")
+            raise ValueError(BACKPROP_WARN)
 
         backend, _ = get_backend()
         jac_mat = self.derivative()  # (batch_size, num_classes, num_classes)

@@ -1,6 +1,7 @@
 from typing import Optional
 
 from neural_networks.backend import ARRAY_TYPE, get_backend
+from neural_networks.constants import BACKPROP_WARN
 
 
 class Activation:
@@ -96,7 +97,5 @@ class Activation:
                 activation function.
         """
         if self._input is None:
-            raise ValueError(
-                "Forward pass must be called before backprop to store input."
-            )
+            raise ValueError(BACKPROP_WARN)
         return dA * self.derivative()
