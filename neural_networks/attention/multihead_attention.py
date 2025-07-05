@@ -46,9 +46,6 @@ class MultiHeadAttention:
         dim_k (int): Total dimensionality for keys across all heads.
         dim_v (int): Total dimensionality for values across all heads.
         add_bias (bool): Whether to use bias in projection layers.
-        dim_q_head (int): Dimensionality of query per head.
-        dim_k_head (int): Dimensionality of key per head.
-        dim_v_head (int): Dimensionality of value per head.
         proj_layer (OrderedDict[str, Projection]): Projection layers for
             Q, K, V.
         attn_heads (list[ScaledDotProductAttention]): List of attention heads.
@@ -106,10 +103,6 @@ class MultiHeadAttention:
                 "Total dimensions for Q, K, V must be divisible by num_heads."
             )
 
-        self.dim_q_head = self.d_model // self.num_heads
-        self.dim_k_head = self.dim_k // self.num_heads
-        self.dim_v_head = self.dim_v // self.num_heads
-
         # This map stores the total dimension for each projection type
         # (query, key, value)
         self.parameter_dims_map: OrderedDict[str, int] = OrderedDict(
@@ -145,7 +138,6 @@ class MultiHeadAttention:
                 in_features=self.d_model,
                 out_features=total_dim,
                 add_bias=self.add_bias,
-                activation=None,  # Projections are linear
             )
 
         self.attn_heads = [
@@ -158,14 +150,13 @@ class MultiHeadAttention:
         # This should be equal to dim_v_total.
         # The output of out_proj is d_model.
         self.out_proj = Dense(
-            in_features=self.num_heads * self.dim_v_head,  # dim_v
+            in_features=self.dim_v,
             out_features=self.d_model,
-            activation=None,  # Output projection is typically linear
             add_bias=self.add_bias,
         )
 
     def _get_head_projection(
-        self, projection_name: str, head_ix: int, full_projection: ARRAY_TYPE
+        self, projection_name: str, head_ix: int
     ) -> ARRAY_TYPE:
         """
         Extracts the segment of the full Q, K, or V projection corresponding to
@@ -174,8 +165,6 @@ class MultiHeadAttention:
         Args:
             projection_name (str): "query", "key", or "value".
             head_ix (int): Index of the head.
-            full_projection (ARRAY_TYPE): The complete Q, K, or V projection
-            tensor of shape (batch_size, seq_len, total_dim_for_projection).
         Returns:
             ARRAY_TYPE: The segment for the specified head.
                 Shape (batch_size, seq_len, dim_head_for_projection).
@@ -183,11 +172,11 @@ class MultiHeadAttention:
         # Determine the dimension per head for this specific projection type
         match projection_name:
             case "query":
-                head_dim = self.dim_q_head
+                head_dim = self.dim_q // self.num_heads
             case "key":
-                head_dim = self.dim_k_head
+                head_dim = self.dim_k // self.num_heads
             case "value":
-                head_dim = self.dim_v_head
+                head_dim = self.dim_v // self.num_heads
             case _:
                 raise ValueError(f"Unknown projection name: {projection_name}")
 
@@ -196,7 +185,7 @@ class MultiHeadAttention:
 
         # Assuming full_projection has shape (batch_size, seq_len, total_dim)
         # We want to slice along the last dimension.
-        return full_projection[:, :, start_idx:end_idx]
+        return self.projections[projection_name][:, :, start_idx:end_idx]
 
     def forward(self, inputs: ARRAY_TYPE) -> ARRAY_TYPE:
         r"""
@@ -226,9 +215,9 @@ class MultiHeadAttention:
         for head_ix, head in enumerate(self.attn_heads):
             # 2. Pass Q_i, K_i, V_i to the i-th attention head
             output = head.forward(
-                q_proj=self.get_head_projection("query", head_ix),
-                k_proj=self.get_head_projection("key", head_ix),
-                v_proj=self.get_head_projection("value", head_ix),
+                q_proj=self._get_head_projection("query", head_ix),
+                k_proj=self._get_head_projection("key", head_ix),
+                v_proj=self._get_head_projection("value", head_ix),
             )
             self.output_head_size = output.shape[-1]
             all_head_outputs.append(output)

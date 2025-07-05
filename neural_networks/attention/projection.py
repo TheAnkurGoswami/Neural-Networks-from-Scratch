@@ -17,7 +17,6 @@ class Projection(Dense):
         activation: Optional[
             str
         ] = None,  # Projection usually doesn't have activation
-        **kwargs
     ) -> None:
         r"""
         Initializes a Projection layer, which is a specialized Dense layer.
@@ -34,11 +33,6 @@ class Projection(Dense):
             out_features (int): Number of output features.
             add_bias (bool, optional): If True, adds a learnable bias.
                 Defaults to True.
-            activation (Optional[str], optional): Activation function name.
-                For typical projection layers in attention, this is usually
-                None (identity). Defaults to None.
-            **kwargs: Additional arguments passed to the parent `Dense` class
-                constructor.
         """
         # Projections in attention typically don't have an activation function
         # applied directly within them. The output of projections (Q, K, V) are
@@ -48,8 +42,6 @@ class Projection(Dense):
             in_features=in_features,
             out_features=out_features,
             add_bias=add_bias,
-            activation=activation,  # Pass along, defaults to None/identity
-            **kwargs
         )
 
         # Reshape bias to (1, 1, out_features) for broadcasting with 3D inputs
