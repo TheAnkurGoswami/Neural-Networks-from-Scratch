@@ -1,3 +1,21 @@
+[project]
+name = "neural-networks-from-scratch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "tensorflow>=2.19.0",
+    "torch>=2.7.1",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pytest>=8.4.1",
+    "ruff>=0.12.2",
+]
+
 [tool.pytest.ini_options]
     filterwarnings = [
         "error",

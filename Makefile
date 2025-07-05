@@ -17,7 +17,7 @@ help:
 	@echo "pre-commit 	sort python package imports using isort"
 
 ENV ?= nn_from_scratch
-PY_VERSION = 3.11
+PY_VERSION = 3.12
 
 create-env:
 	python3 -m venv $(ENV)
@@ -26,6 +26,11 @@ create-env:
 
 create-conda-env:
 	conda create -y -n $(ENV) python=$(PY_VERSION)
+
+create-uv-env:
+	uv venv $(ENV)
+	. $(ENV)/bin/activate
+	uv sync
 
 delete-merged-branches:
 	git branch --merged | grep -vE '^\*|main|master' | xargs -r git branch -d
