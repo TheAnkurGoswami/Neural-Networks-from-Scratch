@@ -27,6 +27,9 @@ create-env:
 create-conda-env:
 	conda create -y -n $(ENV) python=$(PY_VERSION)
 
+delete-merged-branches:
+	git branch --merged | grep -vE '^\*|main|master' | xargs -r git branch -d
+
 install:
 	python -m pip install --upgrade pip
 	python -m pip install --progress-bar off --upgrade -r requirements.txt
